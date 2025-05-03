@@ -1,7 +1,10 @@
 import webview
 import threading
 from src import app  # this triggers the route registration in login.py
+from src import camera# camera_handler.py contains your logic
 
+# Initialize the camera once when the app is imported
+camera.initialize_camera()
 def start_flask():
     app.run(debug=False, port=5000)
 

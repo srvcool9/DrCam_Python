@@ -1,17 +1,49 @@
-
-from src import app
-from flask import Flask, render_template, Response, request, jsonify
+from flask import Flask, render_template, Response, request
+from pygrabber.dshow_graph import FilterGraph
 import cv2
 import threading
+import logging
+from src import app  # your Flask instance
 
+logging.basicConfig(level=logging.DEBUG)
 
-camera = cv2.VideoCapture(0)
 recording = False
 out = None
 zoom = 1.0
 brightness = 0
-
 lock = threading.Lock()
+cam = None
+
+
+def initialize_camera():
+    global cam
+    graph = FilterGraph()
+    devices = graph.get_input_devices()
+    logging.debug(f"Available Cameras: {devices}")
+
+    target_device_name = None
+
+    for name in devices:
+        if "H1600 Cam" in name:
+            target_device_name = name
+            break
+
+    if not target_device_name:
+        logging.warning("No compatible camera (H1600 Cam) found.")
+        cam = None
+        return
+
+    # Get device index from pygrabber
+    index = devices.index(target_device_name)
+    logging.info(f"Using camera: {target_device_name} at index {index}")
+
+    # Open camera with DirectShow backend
+    cam = cv2.VideoCapture(index, cv2.CAP_DSHOW)
+
+    if not cam.isOpened():
+        logging.error("Failed to open selected camera.")
+        cam = None
+
 
 def apply_zoom(frame, zoom_factor):
     if zoom_factor == 1.0:
@@ -20,25 +52,27 @@ def apply_zoom(frame, zoom_factor):
     new_h, new_w = int(h / zoom_factor), int(w / zoom_factor)
     y1 = (h - new_h) // 2
     x1 = (w - new_w) // 2
-    cropped = frame[y1:y1+new_h, x1:x1+new_w]
+    cropped = frame[y1:y1 + new_h, x1:x1 + new_w]
     return cv2.resize(cropped, (w, h))
 
+
 def generate_frames():
-    global camera, recording, out, zoom, brightness
+    global cam, recording, out, zoom, brightness
+
+    if cam is None or not cam.isOpened():
+        yield (b'--frame\r\n'
+               b'Content-Type: text/plain\r\n\r\nNo compatible camera (H1600 Cam) found.\r\n\r\n')
+        return
 
     while True:
         with lock:
-            if not camera.isOpened():
-                break
-            success, frame = camera.read()
+            success, frame = cam.read()
             if not success:
                 break
 
-            # Apply zoom and brightness
             frame = apply_zoom(frame, zoom)
             frame = cv2.convertScaleAbs(frame, alpha=1, beta=brightness)
 
-            # Write if recording
             if recording and out:
                 out.write(frame)
 
@@ -48,13 +82,16 @@ def generate_frames():
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
 
+
 @app.route('/camera')
 def camera():
     return render_template('camera.html')
 
+
 @app.route('/video_feed')
 def video_feed():
     return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
 
 @app.route('/set_zoom', methods=['POST'])
 def set_zoom():
@@ -62,23 +99,26 @@ def set_zoom():
     zoom = float(request.form['zoom'])
     return ('', 204)
 
+
 @app.route('/set_brightness', methods=['POST'])
 def set_brightness():
     global brightness
     brightness = int(request.form['brightness'])
     return ('', 204)
 
+
 @app.route('/start_recording', methods=['POST'])
 def start_recording():
-    global recording, out, camera
+    global recording, out, cam
     with lock:
-        if camera and camera.isOpened():
+        if cam and cam.isOpened():
             fourcc = cv2.VideoWriter_fourcc(*'XVID')
-            width = int(camera.get(cv2.CAP_PROP_FRAME_WIDTH))
-            height = int(camera.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            width = int(cam.get(cv2.CAP_PROP_FRAME_WIDTH))
+            height = int(cam.get(cv2.CAP_PROP_FRAME_HEIGHT))
             out = cv2.VideoWriter('recording.avi', fourcc, 20.0, (width, height))
             recording = True
     return ('', 204)
+
 
 @app.route('/stop_recording', methods=['POST'])
 def stop_recording():
@@ -90,10 +130,11 @@ def stop_recording():
             out = None
     return ('', 204)
 
+
 @app.route('/shutdown', methods=['POST'])
 def shutdown():
-    global camera
+    global cam
     with lock:
-        if camera:
-            camera.release()
+        if cam:
+            cam.release()
     return ('', 204)
