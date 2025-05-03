@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Camera Recorder with Settings</title>
+</head>
+<body>
+    <h1>Live Camera Feed</h1>
+    <img src="{{ url_for('video_feed') }}" width="640" height="480"><br><br>
+
+    <label>Zoom: <input type="range" min="1" max="2" step="0.1" value="1" onchange="setZoom(this.value)"></label><br>
+    <label>Brightness: <input type="range" min="-100" max="100" step="1" value="0" onchange="setBrightness(this.value)"></label><br><br>
+
+    <button onclick="fetch('/start_recording', {method: 'POST'})">Start Recording</button>
+    <button onclick="fetch('/stop_recording', {method: 'POST'})">Stop Recording</button>
+
+    <script>
+        function setZoom(value) {
+            fetch('/set_zoom', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'zoom=' + value
+            });
+        }
+        function setBrightness(value) {
+            fetch('/set_brightness', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'brightness=' + value
+            });
+        }
+    </script>
+</body>
+</html>
