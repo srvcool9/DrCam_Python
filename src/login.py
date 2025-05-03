@@ -68,10 +68,6 @@ html_template = """
             <input type="email" name="email" required />
             <label>Password</label>
             <input type="password" name="password" required />
-            <div class="remember-me">
-                <input type="checkbox" id="remember" />
-                <label for="remember">Remember me</label>
-            </div>
 
             <button type="submit"  class="login-btn">Login</button>
         </form>
@@ -95,7 +91,7 @@ html_template = """
 
 
 @app.route('/', methods=["GET", "POST"])
-def index():
+def login():
     if request.method == "POST":
         email = request.form['email']
         password = request.form['password']

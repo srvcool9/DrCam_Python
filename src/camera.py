@@ -24,7 +24,7 @@ def initialize_camera():
     target_device_name = None
 
     for name in devices:
-        if "H1600 Cam" in name:
+        if "H1600 Cam" or "VMware Virtual USB Video Device" in name:
             target_device_name = name
             break
 
