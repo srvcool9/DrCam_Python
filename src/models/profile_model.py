@@ -11,8 +11,8 @@ class ProfileModel:
     def to_map(self):
         return {
             "id": self.id,
-            "agency_name": self.agency_name,
-            "contact_number": self.contact_number,
+            "agencyName": self.agency_name,
+            "contactNumber": self.contact_number,
             "email": self.email,
             "password": self.password
         }
@@ -21,8 +21,8 @@ class ProfileModel:
     def from_map(data: dict):
         return ProfileModel(
             id=data.get("id"),
-            agency_name=data.get("agency_name", ""),
-            contact_number=data.get("contact_number", ""),
+            agency_name=data.get("agencyName", ""),
+            contact_number=data.get("contactNumber", ""),
             email=data.get("email", ""),
             password=data.get("password", "")
 

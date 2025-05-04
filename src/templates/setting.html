@@ -144,10 +144,10 @@
 <header>
   <div class="logo">Mex <span>Technologies</span></div>
   <nav>
-    <a href="#">Home</a>
-    <a href="#">Camera</a>
-    <a href="#">Patient History</a>
-    <a class="active" href="#">Settings</a>
+    <a href="/dashboard">Home</a>
+    <a href="/camera">Camera</a>
+    <a href="/patient_history">Patient History</a>
+    <a class="active" href="/setting">Settings</a>
   </nav>
   <div style="display: flex; align-items: center;">
     <button class="logout-btn">Logout</button>
@@ -156,7 +156,7 @@
 </header>
 
 <div class="container">
-  <form method="POST" action="/save_information">
+  <form id="profile-form">
     <h1>Profile</h1>
     <div class="form-grid">
       <div class="form-group">
@@ -195,6 +195,31 @@
 
     <button class="save-btn" type="submit">Save</button>
   </form>
+
+  <script>
+document.getElementById("profile-form").addEventListener("submit", async function(e) {
+  e.preventDefault();
+  const form = e.target;
+  const formData = new FormData(form);
+  try {
+    const response = await fetch("/save_information", {
+      method: "POST",
+      body: formData
+    });
+
+    const result = await response.json();
+
+    if (result.status === "saved" || result.status === "updated") {
+      console.log("✅ Profile " + result.status + " successfully!");
+    } else {
+      console.log("❌ Something went wrong!");
+    }
+  } catch (err) {
+    console.error("Error submitting form:", err);
+
+  }
+});
+</script>
 </div>
 
 </body>

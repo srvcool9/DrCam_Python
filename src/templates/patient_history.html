@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Patient History</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      background-color: #fff;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 2rem;
+      background-color: white;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    .logo {
+      font-size: 1.8rem;
+      font-weight: bold;
+      color: #4a9bb7;
+    }
+    .logo span {
+      display: block;
+      font-size: 1rem;
+      font-weight: normal;
+      color: #5ba6c3;
+    }
+    nav a {
+      margin: 0 1rem;
+      text-decoration: none;
+      font-weight: bold;
+      color: black;
+    }
+    nav a.active {
+      color: #4a9bb7;
+    }
+    .logout-btn {
+      padding: 0.5rem 1.5rem;
+      background-color: #4a9bb7;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .container {
+      padding: 2rem;
+    }
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    thead {
+      background-color: #5ba6c3;
+      color: white;
+    }
+    th, td {
+      text-align: center;
+      padding: 1rem;
+      border: 1px solid #d8f1f8;
+    }
+    tbody tr:nth-child(even) {
+      background-color: #f6fcfe;
+    }
+    .icon {
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">
+      Mex<span>Technologies</span>
+    </div>
+    <nav>
+      <a href="/dashboard">Home</a>
+      <a href="/camera">Camera</a>
+      <a href="/patient_history" class="active">Patient History</a>
+      <a href="/setting">Settings</a>
+    </nav>
+    <button class="logout-btn">Logout</button>
+  </header>
+
+  <div class="container">
+    <h1>Patient History</h1>
+    <table>
+      <thead>
+        <tr>
+          <th>Patient ID</th>
+          <th>Patient name</th>
+          <th>Last visited</th>
+          <th>Visit history</th>
+          <th>Generate PDF</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for dto in dto_list %}
+        <tr>
+          <td>{{ dto.patient_id }}</td>
+          <td>{{ dto.patient_name }}</td>
+          <td>{{ dto.last_visited or "N/A" }}</td>
+          <td><span class="icon" onclick="location.href='/visit_history/{{ dto.patient_id }}'">👁️</span></td>
+          <td><span class="icon" onclick="location.href='/generate_pdf/{{ dto.patient_id }}'">📄</span></td>
+        </tr>
+        {% endfor %}
+
+        {# Padding rows for UI consistency (if less than 3 rows) #}
+        {% for _ in range(3 - dto_list|length) %}
+        <tr><td colspan="5">&nbsp;</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</body>
+</html>

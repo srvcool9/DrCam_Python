@@ -4,6 +4,7 @@ from src import app
 from src import camera
 from src import dashboard
 from src import setting
+from src import patient_history
 from src.db_config.database_service import DatabaseService
 
 # Initialize the camera once when the app is imported
@@ -11,7 +12,7 @@ camera.initialize_camera()
 
 
 def start_flask():
-    app.run(debug=False, port=5000)
+    app.run(debug=True,use_reloader=False, port=5000)
 
 if __name__ == '__main__':
     flask_thread = threading.Thread(target=start_flask)
