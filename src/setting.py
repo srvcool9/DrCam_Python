@@ -46,7 +46,7 @@ def save_information():
              )
              return jsonify({"status": "updated"})
         else:
-            doctor_profile= ProfileModel(agency_name,contact_number,email,password)
+            doctor_profile= ProfileModel(1,agency_name,contact_number,email,password)
             db.insert(doctor_profile)
             notification.notify(
                 title='New Notification',

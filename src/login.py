@@ -1,7 +1,10 @@
 from flask import render_template_string, redirect, request, url_for
 
 from src import app
+from src.db_config.database_service import DatabaseService
+from src.models.profile_model import ProfileModel
 
+db=DatabaseService()
 html_template = """
 <!DOCTYPE html>
 <html>
@@ -92,6 +95,7 @@ html_template = """
 
 @app.route('/', methods=["GET", "POST"])
 def login():
+    agency_name=db.query_by_column("")
     if request.method == "POST":
         email = request.form['email']
         password = request.form['password']
@@ -103,6 +107,11 @@ def handle_login(email, password):
         print(f"Login with {email} / {password}")
         return redirect(url_for('dashboard'))
     else:
-        print("Invalid email or password")
-        return "Invalid email or password", 401
+        profile= db.query_by_column("doctor_profile","email",email,ProfileModel.from_map)
+        if(profile and profile.get('password')==password):
+            print("Logged in success")
+            return redirect(url_for('dashboard'))
+        else:
+            print("Invalid email or password")
+            return "Invalid email or password", 401
 
