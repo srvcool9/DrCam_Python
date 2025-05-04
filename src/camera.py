@@ -4,8 +4,13 @@ import cv2
 import threading
 import logging
 from src import app  # your Flask instance
+from src.db_config.database_service import DatabaseService
+from src.models.profile_model import ProfileModel
+from src.db_config import database_service
 
 logging.basicConfig(level=logging.DEBUG)
+db=DatabaseService()
+
 
 recording = False
 out = None
@@ -85,7 +90,10 @@ def generate_frames():
 
 @app.route('/camera')
 def camera():
-    return render_template('camera.html')
+    profile = db.query_by_column("doctor_profile", "id", 1, ProfileModel.from_map)
+    if (profile):
+        agency_name = profile.agency_name
+    return render_template('camera.html',agency_name=agency_name)
 
 
 @app.route('/video_feed')

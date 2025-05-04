@@ -6,7 +6,13 @@ class PatientVisitDTO:
         self.last_visited = last_visited
 
     @staticmethod
-    def from_map(data: dict):
+    def from_map(data):
+        if isinstance(data, PatientVisitDTO):
+            return data  # already a DTO, return as-is
+
+        if not isinstance(data, dict):
+            raise ValueError("Expected a dict for from_map(), got: {}".format(type(data)))
+
         return PatientVisitDTO(
             patient_id=data.get("patientId"),
             appointment_id=data.get("appointmentId", ""),

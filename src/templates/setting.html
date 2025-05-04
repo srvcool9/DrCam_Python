@@ -138,20 +138,28 @@
       max-width: 1000px;
     }
   </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
 
 <header>
-  <div class="logo">Mex <span>Technologies</span></div>
-  <nav>
-    <a href="/dashboard">Home</a>
-    <a href="/camera">Camera</a>
-    <a href="/patient_history">Patient History</a>
-    <a class="active" href="/setting">Settings</a>
-  </nav>
+
+<nav class="navbar">
+        <div class="brand">
+            <strong>{{agency_name}}</strong>
+        </div>
+        <div class="nav-links">
+            <a href="/dashboard" class="active">Home</a>
+            <a href="/camera">Camera</a>
+            <a href="/patient_history">Patient History</a>
+            <a href="/setting">Settings</a>
+        </div>
+        <div class="user-actions">
+            <button class="logout-btn">Logout</button>
+        </div>
+    </nav>
   <div style="display: flex; align-items: center;">
     <button class="logout-btn">Logout</button>
-    <div class="user-circle">ST</div>
   </div>
 </header>
 

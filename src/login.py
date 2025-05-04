@@ -60,11 +60,37 @@ html_template = """
         .right-section img {
             max-height: 300px;
         }
+        .logo-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .logo-container img {
+      max-width: 200px;
+      height: auto;
+    }
+
+    .clinic-name {
+      margin-top: 20px;
+      font-size: 2rem;
+      color: #2c3e50;
+      font-weight: bold;
+    }
+
+    .tagline {
+      font-size: 1rem;
+      color: #6c757d;
+    }
     </style>
 </head>
 <body>
     <div class="left-section">
-        <h1>Doctor’s Agency Name</h1>
+     <div class="logo-container">
+    <img src="{{ url_for('static', filename='clinical_logo.jpg') }}" alt="Medical Logo">
+    <div class="clinic-name">{{agency_name}}</div>
+    <div class="tagline">Your Health, Our Priority</div>
+  </div>
         <h2>Login</h2>
         <form method="POST" action="/">
             <label>Email</label>
@@ -84,7 +110,7 @@ html_template = """
         renderer: 'svg',
         loop: true,
         autoplay: true,
-        path: '../static/my_animation.json' 
+        path: '/static/my_animation.json' 
     });
 </script>
 </body>
@@ -95,12 +121,14 @@ html_template = """
 
 @app.route('/', methods=["GET", "POST"])
 def login():
-    agency_name=db.query_by_column("")
+    profile=db.query_by_column("doctor_profile","id",1,ProfileModel.from_map)
+    if(profile):
+        agency_name=profile.agency_name
     if request.method == "POST":
         email = request.form['email']
         password = request.form['password']
         return handle_login(email, password)
-    return render_template_string(html_template)
+    return render_template_string(html_template,agency_name=agency_name)
 
 def handle_login(email, password):
     if email == 'admin@mex.com' and password == 'admin':

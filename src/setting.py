@@ -11,6 +11,9 @@ db=DatabaseService()
 
 @app.route("/setting")
 def setting():
+    profile = db.query_by_column("doctor_profile", "id", 1, ProfileModel.from_map)
+    if (profile):
+        agency_name = profile.agency_name
     data = db.query_by_column("doctor_profile", "id", 1, ProfileModel.from_map)
     if data:
         data_tuple = [
@@ -24,7 +27,7 @@ def setting():
         ]
     else:
         data_tuple = None
-    return render_template("setting.html",data=data_tuple)
+    return render_template("setting.html",data=data_tuple,agency_name=agency_name)
 
 @app.route('/save_information', methods=["POST"])
 def save_information():
