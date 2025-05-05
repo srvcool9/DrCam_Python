@@ -73,20 +73,98 @@
     .icon {
       cursor: pointer;
     }
+    .navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: white;
+    padding: 1rem 22rem;
+    border-bottom: 0px solid #ccc;
+}
+
+.brand strong {
+    font-size: 1.5rem;
+    color: #0077a3;
+}
+
+.brand span {
+    font-size: 0.9rem;
+    color: #3399cc;
+}
+
+.nav-links a {
+    margin: 0 1rem;
+    text-decoration: none;
+    font-weight: bold;
+    color: black;
+}
+
   </style>
+
 </head>
 <body>
 
   <header>
+    <script>
+function openHistoryModal(dates) {
+  let modal = document.getElementById("historyModal");
 
-    <nav>
-        <div class="brand">
+  if (!modal) {
+    modal = document.createElement("div");
+    modal.id = "historyModal";
+    modal.style.position = "fixed";
+    modal.style.top = "50%";
+    modal.style.left = "50%";
+    modal.style.transform = "translate(-50%, -50%)";
+    modal.style.backgroundColor = "#fff";
+    modal.style.border = "1px solid #ccc";
+    modal.style.padding = "20px";
+    modal.style.zIndex = "1000";
+    modal.style.maxHeight = "300px";
+    modal.style.overflowY = "auto";
+    modal.style.boxShadow = "0 0 10px rgba(0, 0, 0, 0.2)";
+    modal.style.width = "300px";
+    modal.style.position = "fixed";
+
+    modal.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0;color: #0077a3;">Visit History</h3>
+        <span onclick="document.getElementById('historyModal').remove()"
+              style="cursor: pointer; font-size: 20px; font-weight: bold;">&times;</span>
+      </div>
+      <hr>
+      <ul id="historyDatesList" style="margin-top: 10px;"></ul>
+    `;
+
+    document.body.appendChild(modal);
+  }
+
+  const list = modal.querySelector("#historyDatesList");
+  list.innerHTML = "";
+
+  if (Array.isArray(dates) && dates.length) {
+    dates.forEach(date => {
+      const li = document.createElement("li");
+      li.textContent = date;
+      list.appendChild(li);
+    });
+  } else {
+    list.innerHTML = "<li>No visit history found.</li>";
+  }
+}
+</script>
+
+ <div class="brand">
             <strong>{{agency_name}}</strong>
         </div>
-      <a href="/dashboard">Home</a>
-      <a href="/camera">Camera</a>
-      <a href="/patient_history" class="active">Patient History</a>
-      <a href="/setting">Settings</a>
+     <nav class="navbar">
+        <div class="nav-links">
+            <a href="/dashboard" >Home</a>
+            <a href="/camera">Camera</a>
+            <a href="/patient_history" class="active">Patient History</a>
+            <a href="/setting">Settings</a>
+        </div>
+
     </nav>
     <button class="logout-btn">Logout</button>
   </header>
@@ -106,10 +184,12 @@
       <tbody>
         {% for dto in dto_list %}
         <tr>
-          <td>{{ dto.patient_id }}</td>
+          <td>{{ dto.appointment_id }}</td>
           <td>{{ dto.patient_name }}</td>
           <td>{{ dto.last_visited or "N/A" }}</td>
-          <td><span class="icon" onclick="location.href='/visit_history/{{ dto.patient_id }}'">👁️</span></td>
+          <td>
+    <span class="icon" onclick='openHistoryModal({{ dto.visit_dates | tojson | safe }})'>👁️</span>
+  </td>
           <td><span class="icon" onclick="location.href='/generate_pdf/{{ dto.patient_id }}'">📄</span></td>
         </tr>
         {% endfor %}

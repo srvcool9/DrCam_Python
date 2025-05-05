@@ -61,15 +61,16 @@ class Queries:
     '''
 
     GET_GRID_DATA = '''
-        SELECT 
-        p.patientId,
-        p.appointmentId,
-        p.patientName,
-        MAX(t.appointmentDate) AS lastVisited
-        FROM patients p
-        LEFT JOIN patient_history t 
-        ON t.patientId = p.patientId
-        GROUP BY p.patientId, p.patientName
+    SELECT 
+    p.patientId,
+    p.appointmentId,
+    p.patientName,
+    MAX(t.appointmentDate) AS lastVisited,
+    GROUP_CONCAT(t.appointmentDate, ',') AS visitDates
+FROM patients p
+LEFT JOIN patient_history t 
+    ON t.patientId = p.patientId
+GROUP BY p.patientId, p.appointmentId, p.patientName;
     '''
 
     GET_LAST_APPOINTMENT = '''
