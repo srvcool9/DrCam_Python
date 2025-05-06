@@ -55,18 +55,6 @@
             cursor: pointer;
         }
 
-        .profile-circle {
-            width: 32px;
-            height: 32px;
-            background-color: #007ea7;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            font-size: 0.9rem;
-        }
-
         .container {
             display: flex;
             padding: 2rem;
@@ -121,6 +109,48 @@
             width: 100%;
         }
 
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 1rem;
+        }
+
+        .image-grid img {
+            width: 100%;
+            cursor: pointer;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 10;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+        }
+
+        .modal-content {
+            margin: 10% auto;
+            display: block;
+            max-width: 600px;
+        }
+
+        .modal-content img {
+            width: 100%;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            font-size: 30px;
+            color: white;
+            cursor: pointer;
+        }
+
         h1 {
             margin-top: 0;
         }
@@ -128,88 +158,125 @@
 </head>
 <body>
 
-    <!-- Navigation -->
-     <nav class="navbar">
-        <div class="brand">
-            <strong>{{agency_name}}</strong>
+<nav class="navbar">
+    <div class="brand">
+        <strong>{{agency_name}}</strong>
+    </div>
+    <div class="nav-links">
+        <a href="/dashboard">Home</a>
+        <a href="/camera" class="active">Camera</a>
+        <a href="/patient_history">Patient History</a>
+        <a href="/setting">Settings</a>
+    </div>
+    <div class="user-actions">
+        <button class="logout-btn">Logout</button>
+    </div>
+</nav>
+
+<main class="container">
+
+    <section class="form-section">
+        <h2>Camera</h2>
+        <div class="tabs">
+            <button class="active">New User</button>
+            <button>Existing User</button>
         </div>
-        <div class="nav-links">
-            <a href="/dashboard" >Home</a>
-            <a href="/camera" class="active">Camera</a>
-            <a href="/patient_history">Patient History</a>
-            <a href="/setting">Settings</a>
+        <form>
+            <input type="text" placeholder="Patient ID">
+            <input type="text" placeholder="First Name">
+            <input type="text" placeholder="Last Name">
+            <select>
+                <option value="">Gender</option>
+                <option value="M">Male</option>
+                <option value="F">Female</option>
+            </select>
+            <input type="date" placeholder="Date of Birth">
+            <input type="text" placeholder="Phone No.">
+            <input type="text" placeholder="Address">
+            <button type="submit">Save</button>
+        </form>
+    </section>
+
+    <section class="camera-section">
+        <h1>Live Camera</h1>
+        <img src="{{ url_for('video_feed') }}" width="640" height="480"><br><br>
+        <button style="width:150px; background-color: #28a745;" onclick="captureImage()">Capture</button>
+        <button style="width:150px; background-color: #007BFF;" onclick="fetch('/start_recording', {method: 'POST'})">Start Recording</button>
+        <button style="width:150px; background-color: #DC3545;" onclick="fetch('/stop_recording', {method: 'POST'})">Stop Recording</button>
+    </section>
+
+    <section class="image-section">
+        <h3>Recent Images</h3>
+        <div class="sliders">
+            <label for="zoom">Zoom</label>
+            <input type="range" id="zoom" min="1" max="2" step="0.1" value="1" onchange="setZoom(this.value)">
+            <label for="brightness">Brightness</label>
+            <input type="range" id="brightness" min="-100" max="100" step="1" value="0" onchange="setBrightness(this.value)">
         </div>
-        <div class="user-actions">
-            <button class="logout-btn">Logout</button>
+        <div class="image-grid" id="captured-images">
+            <!-- Captured images will be inserted here -->
         </div>
-    </nav>
+    </section>
 
-    <!-- Main Body -->
-    <main class="container">
+</main>
 
-        <!-- Left: New User Form -->
-        <section class="form-section">
-            <h2>Camera</h2>
-            <div class="tabs">
-                <button class="active">New User</button>
-                <button>Existing User</button>
-            </div>
-            <form>
-                <input type="text" placeholder="Patient ID">
-                <input type="text" placeholder="First Name">
-                <input type="text" placeholder="Last Name">
-                <select>
-                    <option value="">Gender</option>
-                    <option value="M">Male</option>
-                    <option value="F">Female</option>
-                </select>
-                <input type="date" placeholder="Date of Birth">
-                <input type="text" placeholder="Phone No.">
-                <input type="text" placeholder="Address">
-                <button type="submit">Save</button>
-            </form>
-        </section>
+<!-- Image Preview Modal -->
+<div class="modal" id="imageModal">
+    <span class="close-btn" onclick="closeModal()">&times;</span>
+    <div class="modal-content">
+        <img id="modalImage" src="" alt="Preview">
+    </div>
+</div>
 
-        <!-- Center: Camera Feed -->
-        <section class="camera-section">
-            <h1>Live Camera Feed</h1>
-            <img src="{{ url_for('video_feed') }}" width="640" height="480"><br><br>
+<script>
+    function setZoom(value) {
+        fetch('/set_zoom', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: 'zoom=' + value
+        });
+    }
 
-            <button onclick="fetch('/start_recording', {method: 'POST'})">Start Recording</button>
-            <button onclick="fetch('/stop_recording', {method: 'POST'})">Stop Recording</button>
-        </section>
+    function setBrightness(value) {
+        fetch('/set_brightness', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: 'brightness=' + value
+        });
+    }
 
-        <!-- Right: Sliders in Recent Image section -->
-        <section class="image-section">
-            <h3>Recent Images</h3>
-            <div class="sliders">
-                <label for="zoom">Zoom</label>
-                <input type="range" id="zoom" name="zoom" min="1" max="2" step="0.1" value="1" onchange="setZoom(this.value)">
+    function captureImage() {
+        fetch('/capture_photo', { method: 'POST' })
+            .then(response => response.ok && loadCapturedImages());
+    }
 
-                <label for="brightness">Brightness</label>
-                <input type="range" id="brightness" name="brightness" min="-100" max="100" step="1" value="0" onchange="setBrightness(this.value)">
-            </div>
-        </section>
-
-    </main>
-
-    <!-- JS functions for zoom/brightness -->
-    <script>
-        function setZoom(value) {
-            fetch('/set_zoom', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'zoom=' + value
+    function loadCapturedImages() {
+        fetch('/media')
+            .then(res => res.json())
+            .then(data => {
+                const container = document.getElementById('captured-images');
+                container.innerHTML = '';
+                data.forEach(filename => {
+                    const img = document.createElement('img');
+                    img.src = '/captures/' + filename;
+                    img.alt = filename;
+                    img.onclick = () => showModal(img.src);
+                    container.appendChild(img);
+                });
             });
-        }
+    }
 
-        function setBrightness(value) {
-            fetch('/set_brightness', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'brightness=' + value
-            });
-        }
-    </script>
+    function showModal(src) {
+        document.getElementById('modalImage').src = src;
+        document.getElementById('imageModal').style.display = 'block';
+    }
+
+    function closeModal() {
+        document.getElementById('imageModal').style.display = 'none';
+    }
+
+    window.onload = loadCapturedImages;
+</script>
+
 </body>
 </html>

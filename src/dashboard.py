@@ -6,14 +6,16 @@ from src.models.profile_model import ProfileModel
 from src.db_config import database_service
 
 
+
 db=DatabaseService()
 
 @app.route("/dashboard")
 def dashboard():
-    global agency_name
     profile = db.query_by_column("doctor_profile", "id", 1, ProfileModel.from_map)
-    if (profile):
+    if (profile and profile.agency_name):
         agency_name = profile.agency_name
+    else:
+        agency_name = 'Mex Enterprise'
     stats = {
         "total_patients": 500,
         "week_visits": 10,

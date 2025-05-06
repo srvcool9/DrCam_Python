@@ -12,8 +12,10 @@ db=DatabaseService()
 @app.route("/setting")
 def setting():
     profile = db.query_by_column("doctor_profile", "id", 1, ProfileModel.from_map)
-    if (profile):
+    if (profile and profile.agency_name):
         agency_name = profile.agency_name
+    else:
+        agency_name = 'Mex Enterprise'
     data = db.query_by_column("doctor_profile", "id", 1, ProfileModel.from_map)
     if data:
         data_tuple = [

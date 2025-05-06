@@ -10,10 +10,11 @@ db=DatabaseService()
 
 @app.route("/patient_history")
 def patient_history():
-     global agency_name
      profile = db.query_by_column("doctor_profile", "id", 1, ProfileModel.from_map)
-     if (profile):
+     if (profile and profile.agency_name):
           agency_name = profile.agency_name
+     else:
+          agency_name = 'Mex Enterprise'
      dto_list = db.custom_query(Queries.GET_GRID_DATA, PatientVisitDTO.from_map)
 
      return render_template("patient_history.html",dto_list=dto_list,agency_name=agency_name)

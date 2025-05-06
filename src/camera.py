@@ -1,16 +1,16 @@
-from flask import Flask, render_template, Response, request
+from flask import Flask, render_template, Response, request, send_from_directory
 from pygrabber.dshow_graph import FilterGraph
 import cv2
 import threading
 import logging
+import os
+from datetime import datetime
 from src import app  # your Flask instance
 from src.db_config.database_service import DatabaseService
 from src.models.profile_model import ProfileModel
-from src.db_config import database_service
 
 logging.basicConfig(level=logging.DEBUG)
-db=DatabaseService()
-
+db = DatabaseService()
 
 recording = False
 out = None
@@ -19,6 +19,8 @@ brightness = 0
 lock = threading.Lock()
 cam = None
 
+CAPTURE_DIR = 'static/captures'
+os.makedirs(CAPTURE_DIR, exist_ok=True)
 
 def initialize_camera():
     global cam
@@ -38,17 +40,13 @@ def initialize_camera():
         cam = None
         return
 
-    # Get device index from pygrabber
     index = devices.index(target_device_name)
     logging.info(f"Using camera: {target_device_name} at index {index}")
-
-    # Open camera with DirectShow backend
     cam = cv2.VideoCapture(index, cv2.CAP_DSHOW)
 
     if not cam.isOpened():
         logging.error("Failed to open selected camera.")
         cam = None
-
 
 def apply_zoom(frame, zoom_factor):
     if zoom_factor == 1.0:
@@ -59,7 +57,6 @@ def apply_zoom(frame, zoom_factor):
     x1 = (w - new_w) // 2
     cropped = frame[y1:y1 + new_h, x1:x1 + new_w]
     return cv2.resize(cropped, (w, h))
-
 
 def generate_frames():
     global cam, recording, out, zoom, brightness
@@ -87,19 +84,15 @@ def generate_frames():
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
 
-
 @app.route('/camera')
 def camera():
     profile = db.query_by_column("doctor_profile", "id", 1, ProfileModel.from_map)
-    if (profile):
-        agency_name = profile.agency_name
-    return render_template('camera.html',agency_name=agency_name)
-
+    agency_name = profile.agency_name if profile and profile.agency_name else 'Mex Enterprise'
+    return render_template('camera.html', agency_name=agency_name)
 
 @app.route('/video_feed')
 def video_feed():
     return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
-
 
 @app.route('/set_zoom', methods=['POST'])
 def set_zoom():
@@ -107,13 +100,11 @@ def set_zoom():
     zoom = float(request.form['zoom'])
     return ('', 204)
 
-
 @app.route('/set_brightness', methods=['POST'])
 def set_brightness():
     global brightness
     brightness = int(request.form['brightness'])
     return ('', 204)
-
 
 @app.route('/start_recording', methods=['POST'])
 def start_recording():
@@ -123,10 +114,9 @@ def start_recording():
             fourcc = cv2.VideoWriter_fourcc(*'XVID')
             width = int(cam.get(cv2.CAP_PROP_FRAME_WIDTH))
             height = int(cam.get(cv2.CAP_PROP_FRAME_HEIGHT))
-            out = cv2.VideoWriter('recording.avi', fourcc, 20.0, (width, height))
+            out = cv2.VideoWriter(os.path.join(CAPTURE_DIR, 'recording.avi'), fourcc, 20.0, (width, height))
             recording = True
     return ('', 204)
-
 
 @app.route('/stop_recording', methods=['POST'])
 def stop_recording():
@@ -138,6 +128,29 @@ def stop_recording():
             out = None
     return ('', 204)
 
+@app.route('/capture_photo', methods=['POST'])
+def capture_photo():
+    global cam
+    with lock:
+        if cam and cam.isOpened():
+            ret, frame = cam.read()
+            if ret:
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                filename = f"img_{timestamp}.jpg"
+                path = os.path.join(CAPTURE_DIR, filename)
+                cv2.imwrite(path, frame)
+                return {'status': 'ok', 'filename': filename}
+    return {'status': 'fail'}, 500
+
+@app.route('/media')
+def list_media():
+    files = sorted(os.listdir(CAPTURE_DIR), reverse=True)
+    files = [f for f in files if f.endswith(('.jpg', '.avi'))]
+    return {'files': files}
+
+@app.route('/captures/<path:filename>')
+def get_file(filename):
+    return send_from_directory(CAPTURE_DIR, filename)
 
 @app.route('/shutdown', methods=['POST'])
 def shutdown():
