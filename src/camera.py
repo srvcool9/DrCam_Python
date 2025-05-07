@@ -1,4 +1,5 @@
-from flask import Flask, render_template, Response, request, send_from_directory
+from flask import Flask, render_template, Response, request, send_from_directory, jsonify
+from plyer import notification
 from pygrabber.dshow_graph import FilterGraph
 import cv2
 import threading
@@ -7,6 +8,7 @@ import os
 from datetime import datetime
 from src import app  # your Flask instance
 from src.db_config.database_service import DatabaseService
+from src.models.patient_model import PatientsModel
 from src.models.profile_model import ProfileModel
 
 logging.basicConfig(level=logging.DEBUG)
@@ -159,3 +161,35 @@ def shutdown():
         if cam:
             cam.release()
     return ('', 204)
+
+@app.route('/save_patient', methods=['POST'])
+def save_patient():
+    data = request.form
+    appointmentId = data.get('patient_id')
+    patientName = data.get('patient_name')
+    gender = data.get('gender')
+    dateOfBirth = data.get('dob')
+    phone = data.get('phone')
+    address = data.get('address')
+
+    exists=db.query_by_column("patients","phone",phone,PatientsModel.from_map)
+    if(exists):
+      patient= PatientsModel(exists.patient_id,appointmentId,patientName,gender,dateOfBirth,phone, address)
+      db.insert(patient)
+      notification.notify(
+          title='New Notification',
+          message='Patient details updated successfully!',
+          app_name='',
+          timeout=5
+      )
+    else:
+        patient = PatientsModel(None, appointmentId, patientName, gender,dateOfBirth, phone, address)
+        db.insert(patient)
+        notification.notify(
+            title='New Notification',
+            message='Patient details registered successfully!',
+            app_name='',
+            timeout=5
+        )
+
+    return jsonify({'status': 'success'})

@@ -21,7 +21,7 @@
 
         .brand strong {
             font-size: 1.5rem;
-            color: black;
+            color: #0077a3;
         }
 
         .brand span {
@@ -159,7 +159,7 @@
 <body>
 
 <nav class="navbar">
-    <div class="brand">
+    <div class="brand" style="color: #3399cc;">
         <strong>{{agency_name}}</strong>
     </div>
     <div class="nav-links">
@@ -176,26 +176,50 @@
 <main class="container">
 
     <section class="form-section">
-        <h2>Camera</h2>
-        <div class="tabs">
-            <button class="active">New User</button>
-            <button>Existing User</button>
-        </div>
-        <form>
-            <input type="text" placeholder="Patient ID">
-            <input type="text" placeholder="First Name">
-            <input type="text" placeholder="Last Name">
-            <select>
+        <h2 style="color:#0077a3;">Patient Registration</h2>
+        <form id="patientForm">
+            <input type="text" name="id" placeholder="Patient ID">
+            <input type="text" name="patient_name" placeholder="Patient Name">
+            <select name="gender">
                 <option value="">Gender</option>
-                <option value="M">Male</option>
-                <option value="F">Female</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                 <option value="Transgender">Transgender</option>
             </select>
-            <input type="date" placeholder="Date of Birth">
-            <input type="text" placeholder="Phone No.">
-            <input type="text" placeholder="Address">
-            <button type="submit">Save</button>
+            <input type="date" name="dob" placeholder="Date of Birth">
+            <input type="text" name="phone" placeholder="Phone No.">
+            <input type="text" name="address" placeholder="Address">
+            <button style="background-color:#0077a3;" type="submit">Save</button>
         </form>
     </section>
+<script>
+document.getElementById('patientForm').addEventListener('submit', function(event) {
+    event.preventDefault();  // Stop form from submitting normally
+
+    const formData = new FormData(this);
+
+    fetch('/save_patient', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Failed');
+        return response.json();
+    })
+    .then(data => {
+        if (data.status === 'success') {
+            alert('Patient data saved successfully!');
+
+        } else {
+            alert('Failed to save patient.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error submitting form.');
+    });
+});
+</script>
 
     <section class="camera-section">
         <h1>Live Camera</h1>
@@ -247,7 +271,11 @@
 
     function captureImage() {
         fetch('/capture_photo', { method: 'POST' })
-            .then(response => response.ok && loadCapturedImages());
+            .then(response => {
+                if (response.ok) {
+                    loadCapturedImages();  // Load only when Capture is clicked
+                }
+            });
     }
 
     function loadCapturedImages() {
