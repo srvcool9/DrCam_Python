@@ -165,7 +165,7 @@ def shutdown():
 @app.route('/save_patient', methods=['POST'])
 def save_patient():
     data = request.form
-    appointmentId = data.get('patient_id')
+    appointmentId = data.get('id')
     patientName = data.get('patient_name')
     gender = data.get('gender')
     dateOfBirth = data.get('dob')
@@ -175,7 +175,7 @@ def save_patient():
     exists=db.query_by_column("patients","phone",phone,PatientsModel.from_map)
     if(exists):
       patient= PatientsModel(exists.patient_id,appointmentId,patientName,gender,dateOfBirth,phone, address)
-      db.insert(patient)
+      db.update(patient)
       notification.notify(
           title='New Notification',
           message='Patient details updated successfully!',
