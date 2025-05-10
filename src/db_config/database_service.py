@@ -68,6 +68,18 @@ class DatabaseService:
         conn.close()
         return rowcount
 
+    def updatePatient(self, model, key="patientId"):
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        data = model.to_map()
+        fields = ', '.join([f"{k}=?" for k in data if k != key])
+        query = f"UPDATE {model.get_table_name()} SET {fields} WHERE {key} = ?"
+        cursor.execute(query, [data[k] for k in data if k != key] + [data[key]])
+        conn.commit()
+        rowcount = cursor.rowcount
+        conn.close()
+        return rowcount
+
     def query_all(self, table, from_map):
         conn = self.get_connection()
         cursor = conn.execute(f"SELECT * FROM {table}")

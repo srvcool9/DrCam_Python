@@ -8,6 +8,7 @@ import os
 from datetime import datetime
 from src import app  # your Flask instance
 from src.db_config.database_service import DatabaseService
+from src.models.patient_history_model import PatientHistoryModel
 from src.models.patient_model import PatientsModel
 from src.models.profile_model import ProfileModel
 
@@ -175,7 +176,8 @@ def save_patient():
     exists=db.query_by_column("patients","phone",phone,PatientsModel.from_map)
     if(exists):
       patient= PatientsModel(exists.patient_id,appointmentId,patientName,gender,dateOfBirth,phone, address)
-      db.update(patient)
+      db.updatePatient(patient)
+      save_patient_history(appointmentId,exists.patient_id)
       notification.notify(
           title='New Notification',
           message='Patient details updated successfully!',
@@ -184,7 +186,11 @@ def save_patient():
       )
     else:
         patient = PatientsModel(None, appointmentId, patientName, gender,dateOfBirth, phone, address)
-        db.insert(patient)
+        persist_id= db.insert(patient)
+        patients= db.query_by_column("patients","patientId",persist_id,PatientsModel.from_map)
+        if(patients):
+            save_patient_history(patients.appointment_id,patients.patient_id)
+            print(patients)
         notification.notify(
             title='New Notification',
             message='Patient details registered successfully!',
@@ -193,3 +199,7 @@ def save_patient():
         )
 
     return jsonify({'status': 'success'})
+
+def save_patient_history(appointment_id,patient_id):
+    patient_history = PatientHistoryModel(None,appointment_id, patient_id,datetime.now().strftime('%Y-%m-%d'),datetime.now().strftime('%Y-%m-%d'))
+    db.insert(patient_history)
