@@ -1,30 +1,60 @@
 import sqlite3
 from pathlib import Path
-
+import ctypes.wintypes  # Only applies for Windows
+import os
 from src.contants.queries import Queries
 
 
 class DatabaseService:
     def __init__(self):
         self.db_path = self._get_database_path()
-        self.ensure_directories()
-        self.initialize_schema()
+        self._ensure_directories()
+        self._ensure_database()
+
+    def _get_documents_path(self):
+        """Get Windows 'Documents' folder using SHGetKnownFolderPath"""
+        try:
+            from ctypes import windll, POINTER, byref
+            from uuid import UUID
+            SHGetKnownFolderPath = windll.shell32.SHGetKnownFolderPath
+            SHGetKnownFolderPath.argtypes = [
+                ctypes.POINTER(ctypes.c_byte), ctypes.wintypes.DWORD,
+                ctypes.wintypes.HANDLE, ctypes.POINTER(ctypes.c_wchar_p)
+            ]
+            FOLDERID_Documents = UUID('{FDD39AD0-238F-46AF-ADB4-6C85480369C7}')
+            path_ptr = ctypes.c_wchar_p()
+            SHGetKnownFolderPath(
+                (ctypes.c_byte * 16).from_buffer_copy(FOLDERID_Documents.bytes_le),
+                0, 0, byref(path_ptr)
+            )
+            return Path(path_ptr.value)
+        except Exception as e:
+            print("Error getting Documents path, falling back to home/Documents:", e)
+            return Path.home() / "Documents"
 
     def _get_database_path(self) -> Path:
-        documents_dir = Path.home() / "Documents"
+        documents_dir = self._get_documents_path()
         db_dir = documents_dir / "DrCamApp" / "databases"
-        db_dir.mkdir(parents=True, exist_ok=True)
         return db_dir / "AppDb.db"
 
-    def ensure_directories(self):
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+    def _ensure_directories(self):
+        db_dir = self.db_path.parent
+        db_dir.mkdir(parents=True, exist_ok=True)
+
+    def _ensure_database(self):
+        if not self.db_path.exists():
+            print(f"Database not found. Initializing schema at {self.db_path}")
+            self.initialize_schema()
+        else:
+            print(f"Database exists: {self.db_path}")
 
     def get_connection(self):
-        conn = sqlite3.connect(self.db_path, check_same_thread=False)
+        conn = sqlite3.connect(str(self.db_path), check_same_thread=False)
         conn.row_factory = sqlite3.Row
         return conn
 
     def initialize_schema(self):
+        self._ensure_directories()
         conn = self.get_connection()
         cursor = conn.cursor()
         queries = [
@@ -55,6 +85,28 @@ class DatabaseService:
         last_id = cursor.lastrowid
         conn.close()
         return last_id
+
+    def bulk_insert(self, models):
+        """Bulk insert a list of models into the database."""
+        if not models:
+            return
+
+        conn = self.get_connection()
+        cursor = conn.cursor()
+
+        # Get the first model's table name and column names
+        table_name = models[0].get_table_name()
+        columns = models[0].to_map().keys()
+        placeholders = ', '.join(['?'] * len(columns))
+
+        # Prepare a list of tuples for the bulk insert
+        values = [tuple(model.to_map().values()) for model in models]
+
+        # Insert all the rows in a single query
+        query = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({placeholders})"
+        cursor.executemany(query, values)
+        conn.commit()
+        conn.close()
 
     def update(self, model, key="id"):
         conn = self.get_connection()

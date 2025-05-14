@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Mex Technologies - Settings</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: #fff;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 40px;
+      background-color: white;
+      border-bottom: 1px solid #ccc;
+    }
+
+    header .logo {
+      font-size: 28px;
+      font-weight: bold;
+      color: #2e7b9a;
+    }
+
+    header .logo span {
+      color: black;
+      font-weight: normal;
+    }
+
+    nav a {
+      margin: 0 15px;
+      text-decoration: none;
+      color: black;
+      font-weight: bold;
+    }
+
+    nav a.active {
+      color: #2e7b9a;
+    }
+
+    .logout-btn {
+      background-color: #2e7b9a;
+      color: white;
+      padding: 8px 20px;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .user-circle {
+      background-color: #2e7b9a;
+      color: white;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      text-align: center;
+      line-height: 40px;
+      font-weight: bold;
+      font-size: 16px;
+      margin-left: 20px;
+    }
+
+    .container {
+      padding: 40px 60px;
+    }
+
+    h1 {
+      font-size: 32px;
+      font-weight: 900;
+      margin-bottom: 20px;
+    }
+
+    .section-title {
+      font-size: 28px;
+      font-weight: 900;
+      margin: 40px 0 20px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 30px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .form-group label {
+      font-weight: bold;
+      margin-bottom: 8px;
+      color: #2e7b9a;
+    }
+
+    .form-group input {
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      background-color: #f1f1f1;
+      font-size: 14px;
+    }
+
+    .form-group input[readonly] {
+      background-color: #e0e0e0;
+      color: #777;
+    }
+
+    .password-field {
+      display: flex;
+      align-items: center;
+    }
+
+    .change-password {
+      margin-top: 10px;
+      color: #2e7b9a;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .save-btn {
+      margin-top: 30px;
+      background-color: #2e7b9a;
+      color: white;
+      border: none;
+      padding: 12px 30px;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    form {
+      max-width: 1000px;
+    }
+  </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<header>
+<div class="brand">
+            <strong>{{agency_name}}</strong>
+        </div>
+<nav class="navbar">
+
+        <div class="nav-links">
+            <a href="/dashboard" class="active">Home</a>
+            <a href="/camera">Camera</a>
+            <a href="/patient_history">Patient History</a>
+            <a href="/setting">Settings</a>
+        </div>
+
+    </nav>
+  <div style="display: flex; align-items: center;">
+    <button class="logout-btn">Logout</button>
+  </div>
+</header>
+
+<div class="container">
+  <form id="profile-form">
+    <h1>Profile</h1>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Agency Name</label>
+        <input type="text" name="agency_name" value="{{ data[1] if data else '' }}" required>
+      </div>
+      <div class="form-group">
+        <label>Contact Number</label>
+        <input type="text" name="contact_number" value="{{ data[2] if data else '' }}" required >
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" name="email" value="{{ data[3] if data else '' }}" required>
+      </div>
+    </div>
+
+    <div style="margin-top: 30px;">
+      <label style="color: #2e7b9a; font-weight: bold;">Password</label>
+      <div class="password-field">
+        <input type="password" name="password" value="{{ data[4] if data else '' }}" required>
+        <span style="margin-left: 10px; cursor: pointer;">👁️</span>
+      </div>
+    </div>
+
+    <div class="section-title">Mex Technologies</div>
+    <div class="form-grid" style="grid-template-columns: repeat(2, 1fr);">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" name="mex_email" value="{{ data[5] if data else '' }}" readonly>
+      </div>
+      <div class="form-group">
+        <label>Contact Number</label>
+        <input type="text" name="mex_contact" value="{{ data[6] if data else '' }}" readonly>
+      </div>
+    </div>
+
+    <button class="save-btn" type="submit">Save</button>
+  </form>
+
+  <script>
+document.getElementById("profile-form").addEventListener("submit", async function(e) {
+  e.preventDefault();
+  const form = e.target;
+  const formData = new FormData(form);
+  try {
+    const response = await fetch("/save_information", {
+      method: "POST",
+      body: formData
+    });
+
+    const result = await response.json();
+
+    if (result.status === "saved" || result.status === "updated") {
+      console.log("✅ Profile " + result.status + " successfully!");
+    } else {
+      console.log("❌ Something went wrong!");
+    }
+  } catch (err) {
+    console.error("Error submitting form:", err);
+
+  }
+});
+</script>
+</div>
+
+</body>
+</html>

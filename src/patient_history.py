@@ -18,3 +18,6 @@ def patient_history():
      dto_list = db.custom_query(Queries.GET_GRID_DATA, PatientVisitDTO.from_map)
 
      return render_template("patient_history.html",dto_list=dto_list,agency_name=agency_name)
+
+
+

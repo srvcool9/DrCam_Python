@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard | Mex Technologies</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="brand">
+            <strong>{{agency_name}}</strong>
+        </div>
+        <div class="nav-links">
+            <a href="/dashboard" class="active">Home</a>
+            <a href="/camera">Camera</a>
+            <a href="/patient_history">Patient History</a>
+            <a href="/setting">Settings</a>
+        </div>
+        <div class="user-actions">
+            <button class="logout-btn">Logout</button>
+        </div>
+    </nav>
+
+    <main class="dashboard">
+        <div class="card">{{ stats.total_patients }}<br><span>Total patients registered</span></div>
+        <div class="card">{{ stats.week_visits }}<br><span>Patients visited this week</span></div>
+        <div class="card">{{ stats.month_visits }}<br><span>Patients visited this month</span></div>
+        <div class="card">{{ stats.year_visits }}<br><span>Patients visited this year</span></div>
+        <div class="card">{{ stats.frequent_patients }}<br><span>Frequently visiting patients</span></div>
+    </main>
+</body>
+</html>

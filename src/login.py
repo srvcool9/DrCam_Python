@@ -87,7 +87,7 @@ html_template = """
 <body>
     <div class="left-section">
      <div class="logo-container">
-    <img src="{{ url_for('static', filename='clinical_logo.jpg') }}" alt="Medical Logo">
+   <img src="{{ url_for('static', filename='clinical_logo.jpg') }}" alt="Medical Logo">
     <div class="clinic-name">{{agency_name}}</div>
     <div class="tagline">Your Health, Our Priority</div>
   </div>
@@ -110,7 +110,7 @@ html_template = """
         renderer: 'svg',
         loop: true,
         autoplay: true,
-        path: '/static/my_animation.json' 
+        path: '/temp_images/my_animation.json' 
     });
 </script>
 </body>

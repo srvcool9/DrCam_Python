@@ -1,4 +1,8 @@
-from flask import Flask, render_template, Response, request, send_from_directory, jsonify
+import ctypes
+import shutil
+from pathlib import Path
+
+from flask import Flask,send_file, render_template, Response, request, send_from_directory, jsonify
 from plyer import notification
 from pygrabber.dshow_graph import FilterGraph
 import cv2
@@ -7,8 +11,10 @@ import logging
 import os
 from datetime import datetime
 from src import app  # your Flask instance
+from src.contants.queries import Queries
 from src.db_config.database_service import DatabaseService
 from src.models.patient_history_model import PatientHistoryModel
+from src.models.patient_images_model import PatientImagesModel
 from src.models.patient_model import PatientsModel
 from src.models.profile_model import ProfileModel
 
@@ -24,6 +30,8 @@ cam = None
 
 CAPTURE_DIR = 'static/captures'
 os.makedirs(CAPTURE_DIR, exist_ok=True)
+images_list = []
+clicked_images= []
 
 def initialize_camera():
     global cam
@@ -91,7 +99,7 @@ def generate_frames():
 def camera():
     profile = db.query_by_column("doctor_profile", "id", 1, ProfileModel.from_map)
     agency_name = profile.agency_name if profile and profile.agency_name else 'Mex Enterprise'
-    return render_template('camera.html', agency_name=agency_name)
+    return render_template('camera.html', agency_name=agency_name,images=images_list)
 
 @app.route('/video_feed')
 def video_feed():
@@ -131,29 +139,53 @@ def stop_recording():
             out = None
     return ('', 204)
 
-@app.route('/capture_photo', methods=['POST'])
-def capture_photo():
+
+@app.route('/capture_photo/<string:public_flag>/<string:patient_name>', methods=['POST'])
+def capture_photo(public_flag,patient_name):
     global cam
+    global images_list
     with lock:
         if cam and cam.isOpened():
             ret, frame = cam.read()
             if ret:
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                timestamp = datetime.now().strftime("%d_%m_%Y_%H%M%S%f")
                 filename = f"img_{timestamp}.jpg"
-                path = os.path.join(CAPTURE_DIR, filename)
-                cv2.imwrite(path, frame)
+
+                if public_flag.lower() == 'true':
+                    path = os.path.join(_get_documents_path(), 'DrCamApp', 'public','images')
+                    clicked_images.append(path+'/'+filename)
+                else:
+                    path = os.path.join(_get_documents_path(), 'DrCamApp', 'temp', 'images')
+                    images_list.append(filename)
+                    clicked_images.append(path + '/' + filename)
+
+                os.makedirs(path, exist_ok=True)
+                cv2.imwrite(path+'/'+filename, frame)
                 return {'status': 'ok', 'filename': filename}
+
     return {'status': 'fail'}, 500
 
 @app.route('/media')
 def list_media():
-    files = sorted(os.listdir(CAPTURE_DIR), reverse=True)
-    files = [f for f in files if f.endswith(('.jpg', '.avi'))]
-    return {'files': files}
+    global clicked_images
+    return {'files': clicked_images}
+
+@app.route('/temp_images/<filename>')
+def temp_images(filename):
+    temp_dir = os.path.join(app.root_path, 'temp_images', 'captures')
+    return send_from_directory(temp_dir, filename)
+
+
+@app.route('/get_image')
+def get_image():
+    path = request.args.get('path')
+    if not path or not os.path.exists(path):
+        return "Image not found", 404
+    return send_file(path, mimetype='image/jpeg')
 
 @app.route('/captures/<path:filename>')
 def get_file(filename):
-    return send_from_directory(CAPTURE_DIR, filename)
+     return send_from_directory(CAPTURE_DIR, filename)
 
 @app.route('/shutdown', methods=['POST'])
 def shutdown():
@@ -177,7 +209,7 @@ def save_patient():
     if(exists):
       patient= PatientsModel(exists.patient_id,appointmentId,patientName,gender,dateOfBirth,phone, address)
       db.updatePatient(patient)
-      save_patient_history(appointmentId,exists.patient_id)
+      save_patient_history(patient)
       notification.notify(
           title='New Notification',
           message='Patient details updated successfully!',
@@ -189,7 +221,7 @@ def save_patient():
         persist_id= db.insert(patient)
         patients= db.query_by_column("patients","patientId",persist_id,PatientsModel.from_map)
         if(patients):
-            save_patient_history(patients.appointment_id,patients.patient_id)
+            save_patient_history(patients)
             print(patients)
         notification.notify(
             title='New Notification',
@@ -200,6 +232,105 @@ def save_patient():
 
     return jsonify({'status': 'success'})
 
-def save_patient_history(appointment_id,patient_id):
-    patient_history = PatientHistoryModel(None,appointment_id, patient_id,datetime.now().strftime('%Y-%m-%d'),datetime.now().strftime('%Y-%m-%d'))
-    db.insert(patient_history)
+def save_patient_history(patient):
+    patient_history = PatientHistoryModel(
+        None,
+        patient.appointment_id,
+        patient.patient_id,
+        datetime.now().strftime('%Y-%m-%d'),
+        datetime.now().strftime('%Y-%m-%d')
+    )
+    saved_history_id = db.insert(patient_history)
+
+    if images_list:
+        image_filenames = list(images_list)  # copy list before clearing
+
+        src_path = os.path.join(_get_documents_path(), 'DrCamApp', 'temp', 'images')
+        dest_path = os.path.join(_get_documents_path(), 'DrCamApp', patient.patient_name, 'images')
+        os.makedirs(dest_path, exist_ok=True)
+
+        for filename in image_filenames:
+            temp_path = os.path.join(src_path, filename)
+            dest_file_path = os.path.join(dest_path, filename)
+            try:
+                if os.path.exists(temp_path):
+                    shutil.move(temp_path, dest_file_path)
+            except Exception as e:
+                print(f"Failed to move {filename}: {e}")
+
+        # Create DB entries
+        patient_images = [
+            PatientImagesModel(None, patient.patient_id, saved_history_id, filename, datetime.now())
+            for filename in image_filenames
+        ]
+        db.bulk_insert(patient_images)
+        images_list.clear()
+
+
+@app.route('/get_patient/<string:patient_id>')
+def get_patient(patient_id):
+    patient = db.query_by_column("patients","patientId",patient_id,PatientsModel.from_map)
+    if patient:
+        get_all_patient_images(patient_id, patient.patient_name)
+        return jsonify({
+            'status': 'success',
+            'patient': {
+                'id': patient.appointment_id,
+                'patient_name': patient.patient_name,
+                'gender': patient.gender,
+                'dob': str(patient.date_of_birth),
+                'phone': patient.phone,
+                'address': patient.address
+            },
+            'images': images_list
+        })
+
+    return jsonify({'status': 'error', 'message': 'Patient not found'})
+
+def _get_documents_path():
+        """Get Windows 'Documents' folder using SHGetKnownFolderPath"""
+        try:
+            from ctypes import windll, POINTER, byref
+            from uuid import UUID
+            SHGetKnownFolderPath = windll.shell32.SHGetKnownFolderPath
+            SHGetKnownFolderPath.argtypes = [
+                ctypes.POINTER(ctypes.c_byte), ctypes.wintypes.DWORD,
+                ctypes.wintypes.HANDLE, ctypes.POINTER(ctypes.c_wchar_p)
+            ]
+            FOLDERID_Documents = UUID('{FDD39AD0-238F-46AF-ADB4-6C85480369C7}')
+            path_ptr = ctypes.c_wchar_p()
+            SHGetKnownFolderPath(
+                (ctypes.c_byte * 16).from_buffer_copy(FOLDERID_Documents.bytes_le),
+                0, 0, byref(path_ptr)
+            )
+            return Path(path_ptr.value)
+        except Exception as e:
+            print("Error getting Documents path, falling back to home/Documents:", e)
+            return Path.home() / "Documents"
+def get_all_patient_images(patient_id, patient_name):
+    global images_list
+    images_list.clear()
+
+    # Ensure temp_images/captures exists
+    temp_path = os.path.join(app.root_path, 'temp_images', 'captures')
+    os.makedirs(temp_path, exist_ok=True)
+
+    # Get DB image filenames
+    patient_images = db.custom_query(
+        Queries.GET_ALL_PATIENT_IMAGES,
+        from_map=lambda row: row["imageBase64"],
+        args=[patient_id]
+    )
+
+    # Path where actual images are stored
+    image_path = os.path.join(_get_documents_path(), 'DrCamApp', patient_name, 'images')
+
+    for filename in patient_images:
+        src_file = os.path.join(image_path, filename)
+        dst_file = os.path.join(temp_path, filename)
+        try:
+            if os.path.exists(src_file):
+                shutil.copy2(src_file, dst_file)
+                images_list.append(filename)  # store just filename for `url_for`
+        except Exception as e:
+            print(f"Failed to copy image: {e}")

@@ -79,3 +79,7 @@ GROUP BY p.patientId, p.appointmentId, p.patientName;
         ORDER BY createdOn
         LIMIT 1
     '''
+
+    GET_ALL_PATIENT_IMAGES ='''
+        SELECT imageBase64 FROM patient_images WHERE patientId = ?
+    '''

@@ -24,20 +24,11 @@
             color: #0077a3;
         }
 
-        .brand span {
-            color: #007ea7;
-            font-size: 0.9rem;
-        }
-
         .nav-links a {
             margin: 0 1rem;
             text-decoration: none;
             color: #000;
             font-weight: bold;
-        }
-
-        .nav-links a.active {
-            color: #007ea7;
         }
 
         .user-actions {
@@ -46,7 +37,7 @@
         }
 
         .logout-btn {
-            background-color: #007ea7;
+            background-color: #0077a3;
             color: white;
             border: none;
             padding: 0.5rem 1rem;
@@ -110,17 +101,30 @@
         }
 
         .image-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            margin-top: 1rem;
-        }
+         display: grid;
+         grid-template-columns: repeat(4, 1fr);
+         gap: 10px;
+         margin-top: 26rem;
+         margin-left: -50rem;
+         padding: 4px 0rem;
+}
 
         .image-grid img {
             width: 100%;
             cursor: pointer;
             border-radius: 4px;
             border: 1px solid #ccc;
+        }
+
+        .image-grid .image-item {
+            position: relative;
+            text-align: center;
+        }
+
+        .image-item .date {
+            font-size: 0.8rem;
+            color: #555;
+            margin-top: 0.5rem;
         }
 
         .modal {
@@ -184,7 +188,7 @@
                 <option value="">Gender</option>
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
-                 <option value="Transgender">Transgender</option>
+                <option value="Transgender">Transgender</option>
             </select>
             <input type="date" name="dob" placeholder="Date of Birth">
             <input type="text" name="phone" placeholder="Phone No.">
@@ -192,39 +196,14 @@
             <button style="background-color:#0077a3;" type="submit">Save</button>
         </form>
     </section>
-<script>
-document.getElementById('patientForm').addEventListener('submit', function(event) {
-    event.preventDefault();  // Stop form from submitting normally
-
-    const formData = new FormData(this);
-
-    fetch('/save_patient', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => {
-        if (!response.ok) throw new Error('Failed');
-        return response.json();
-    })
-    .then(data => {
-        if (data.status === 'success') {
-            alert('Patient data saved successfully!');
-
-        } else {
-            alert('Failed to save patient.');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Error submitting form.');
-    });
-});
-</script>
 
     <section class="camera-section">
         <h1>Live Camera</h1>
         <img src="{{ url_for('video_feed') }}" width="640" height="480"><br><br>
-        <button style="width:150px; background-color: #28a745;" onclick="captureImage()">Capture</button>
+        <button id="captureButton" style="width:150px; background-color: #28a745;" onclick="captureImage()">Capture</button>
+        <div id="loadingIcon" style="display:none;">
+            <img src="static/loading.gif" alt="Loading..." />
+        </div>
         <button style="width:150px; background-color: #007BFF;" onclick="fetch('/start_recording', {method: 'POST'})">Start Recording</button>
         <button style="width:150px; background-color: #DC3545;" onclick="fetch('/stop_recording', {method: 'POST'})">Stop Recording</button>
     </section>
@@ -237,9 +216,15 @@ document.getElementById('patientForm').addEventListener('submit', function(event
             <label for="brightness">Brightness</label>
             <input type="range" id="brightness" min="-100" max="100" step="1" value="0" onchange="setBrightness(this.value)">
         </div>
-        <div class="image-grid" id="captured-images">
-            <!-- Captured images will be inserted here -->
+       <div id="captured-images" class="image-grid">
+    {% for image in images %}
+        <div class="image-item">
+            <img src="{{ url_for('temp_images', filename=image) }}" alt="Patient Image" onclick="showModal(this.src)">
+            <div class="date">Filename: {{ image }}</div>
         </div>
+    {% endfor %}
+</div>
+
     </section>
 
 </main>
@@ -270,29 +255,30 @@ document.getElementById('patientForm').addEventListener('submit', function(event
     }
 
     function captureImage() {
-        fetch('/capture_photo', { method: 'POST' })
+        const form = document.getElementById('patientForm');
+        const isFormEmpty = [...form.elements].every(el => !el.value || el.type === "submit");
+        const patientName = form.elements['patient_name'].value.trim().replace(/\s+/g, '_') || 'unknown';
+        const publicFlag = isFormEmpty ? 'true' : 'false';
+        const captureUrl = `/capture_photo/${publicFlag}/${encodeURIComponent(patientName)}`;
+        const loadingIcon = document.getElementById('loadingIcon');
+        captureButton.disabled = true;
+        loadingIcon.style.display = 'block';
+
+        fetch(captureUrl, { method: 'POST' })
             .then(response => {
                 if (response.ok) {
-                    loadCapturedImages();  // Load only when Capture is clicked
+                    loadCapturedImages();
+                } else {
+                    console.log('Error capturing image.');
                 }
+            })
+            .finally(() => {
+                captureButton.disabled = false;
+                loadingIcon.style.display = 'none';
             });
     }
 
-    function loadCapturedImages() {
-        fetch('/media')
-            .then(res => res.json())
-            .then(data => {
-                const container = document.getElementById('captured-images');
-                container.innerHTML = '';
-                data.forEach(filename => {
-                    const img = document.createElement('img');
-                    img.src = '/captures/' + filename;
-                    img.alt = filename;
-                    img.onclick = () => showModal(img.src);
-                    container.appendChild(img);
-                });
-            });
-    }
+
 
     function showModal(src) {
         document.getElementById('modalImage').src = src;
@@ -303,7 +289,74 @@ document.getElementById('patientForm').addEventListener('submit', function(event
         document.getElementById('imageModal').style.display = 'none';
     }
 
-    window.onload = loadCapturedImages;
+
+    function loadPatientData(patientId) {
+
+    fetch(`/get_patient/${patientId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data && data.status === 'success') {
+                const form = document.getElementById('patientForm');
+                form.elements['id'].value = data.patient.id;
+                form.elements['patient_name'].value = data.patient.patient_name;
+                form.elements['gender'].value = data.patient.gender;
+                form.elements['dob'].value = data.patient.dob;
+                form.elements['phone'].value = data.patient.phone;
+                form.elements['address'].value = data.patient.address;
+            }
+            loadImageGrid(data.images);
+        })
+        .catch(error => console.error('Error loading patient data:', error));
+}
+  function getQueryParam(name) {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get(name);
+    }
+
+document.addEventListener('DOMContentLoaded', () => {
+    const pid = getQueryParam('patient_id');
+    if (pid) loadPatientData(pid);
+});
+
+    document.getElementById('patientForm').addEventListener('submit', function (event) {
+    event.preventDefault(); // prevent full page reload
+
+    const formData = new FormData(this);
+
+    fetch('/save_patient', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'ok') {
+            console.log('Patient saved successfully!');
+        } else {
+            console.error('Failed to save patient.');
+        }
+    })
+    .catch(error => {
+        console.error('Error saving patient:', error);
+
+    });
+});
+
+
+function loadImageGrid(images) {
+    const container = document.getElementById('captured-images');
+    if (!container) return;
+    container.innerHTML = '';
+
+    images.forEach(imagePath => {
+        const img = document.createElement('img');
+        img.src = '/temp_images/' + encodeURIComponent(imagePath);
+        img.alt = 'Captured Image';
+        img.onclick = () => showModal(img.src);
+        container.appendChild(img);
+    });
+}
+
+
 </script>
 
 </body>
