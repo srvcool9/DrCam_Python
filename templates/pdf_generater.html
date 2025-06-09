@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Camera | Mex Technologies</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+        }
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: white;
+            padding: 10px 30px;
+            border-bottom: 2px solid #ddd;
+        }
+        .brand {
+            font-size: 1.5rem;
+        }
+        .nav-links a {
+            margin: 0 15px;
+            text-decoration: none;
+            font-weight: bold;
+            color: black;
+        }
+        .nav-links .active {
+            color: #3399cc;
+        }
+        .logout-btn {
+            background-color: #007B8F;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 247px;
+            padding: 20px;
+        }
+        .image-item {
+            text-align: center;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 6px;
+            position: relative;
+            width: 280px;
+            height: 200px;
+
+        }
+        .image-item input[type="checkbox"] {
+            position: absolute;
+            top: 10px;
+            right: 8px;
+        }
+        .image-item img {
+            width: 234px;
+            height: 172px;
+            object-fit: contain;
+            margin-bottom: 5px;
+            margin-top: 11px;
+            margin-right: 11px;
+        }
+        .date {
+            font-size: 0.85rem;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="brand" style="color: #3399cc;">
+        <strong>{{ agency_name }}</strong>
+    </div>
+    <div class="nav-links">
+        <a href="/dashboard">Home</a>
+        <a href="/camera" >Camera</a>
+        <a href="/patient_history">Patient History</a>
+        <a href="/setting">Settings</a>
+    </div>
+    <div class="user-actions">
+        <button class="logout-btn" onclick="window.location.href = '/'">Logout</button>
+    </div>
+</nav>
+
+<!-- Image Count Input (Optional) -->
+<div style="padding: 20px;">
+    <label for="image-count">Image count per page</label>
+    <select id="image-count" style="margin-left: 10px; padding: 5px;">
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+    </select>
+</div>
+
+
+<!-- Captured Images -->
+<div id="captured-images" class="image-grid">
+    <!-- Filled dynamically -->
+</div>
+
+<!-- Download Button -->
+<div style="text-align: right; padding: 20px;">
+    <button id="download-btn" class="logout-btn">Download Pdf</button>
+</div>
+
+<script>
+    function loadImageGrid(images = []) {
+        const container = document.getElementById('captured-images');
+        if (!container) return;
+
+        container.innerHTML = '';
+
+        if (!images || images.length === 0) {
+            container.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align: center; color: #888; font-size: 1.2rem;">
+                    No images found.
+                </div>`;
+            return;
+        }
+
+        const sortedImages = images.slice().sort((a, b) => {
+            const extractDate = (filename) => {
+                const match = filename.match(/img_(\d{2})_(\d{2})_(\d{4})/);
+                if (!match) return null;
+                const [_, day, month, year] = match;
+                return new Date(`${year}-${month}-${day}`);
+            };
+            const dateA = extractDate(a);
+            const dateB = extractDate(b);
+            if (!dateA) return 1;
+            if (!dateB) return -1;
+            return dateB - dateA;
+        });
+
+        sortedImages.forEach(imagePath => {
+            const imageUrl = '/temp_images/' + encodeURIComponent(imagePath);
+            const match = imagePath.match(/img_(\d{2})_(\d{2})_(\d{4})/);
+            let formattedDate = 'Unknown Date';
+            if (match) {
+                const [_, day, month, year] = match;
+                formattedDate = `${month}/${day}/${year}`;
+            }
+
+            container.innerHTML += `
+                <div class="image-item">
+                    <input type="checkbox" class="select-checkbox" data-filename="${imagePath}">
+                    <img src="${imageUrl}" alt="Captured Image" onclick="showModal('${imageUrl}')">
+                    <div class="date">Date : ${formattedDate}</div>
+                </div>`;
+        });
+    }
+
+    function showModal(url) {
+        alert('Image preview placeholder: ' + url);
+    }
+
+    function getSelectedImages() {
+    const checkboxes = document.querySelectorAll('.select-checkbox:checked');
+    const selectedFiles = Array.from(checkboxes).map(cb => cb.dataset.filename);
+    const imageCountPerPage = parseInt(document.getElementById("image-count").value);
+
+    if (selectedFiles.length === 0) {
+        alert("Please select at least one image.");
+        return;
+    }
+
+    fetch('/api/selected_images', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            images: selectedFiles,
+            count_per_page: imageCountPerPage
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error("Failed to download PDF");
+        }
+        return response.blob();
+    })
+    .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = "Selected_Images.pdf";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+    })
+    .catch(error => {
+        console.error("Error downloading PDF:", error);
+        alert("Failed to download PDF");
+    });
+    }
+
+
+
+    // Attach to your download button
+    document.addEventListener("DOMContentLoaded", () => {
+        loadImageGrid({{ files | tojson | safe }});
+
+        document.getElementById('download-btn').addEventListener('click', () => {
+           getSelectedImages();
+        });
+
+    });
+</script>
+
+
+</body>
+</html>

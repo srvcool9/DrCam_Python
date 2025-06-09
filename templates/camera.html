@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Camera | Mex Technologies</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+    }
+
+    /* Navbar */
+    .navbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 2rem;
+        background-color: #f8f8f8;
+        border-bottom: 1px solid #ccc;
+    }
+
+    .brand strong {
+        font-size: 1.5rem;
+        color: #0077a3;
+    }
+
+    .nav-links a {
+        margin: 0 1rem;
+        text-decoration: none;
+        color: #000;
+        font-weight: bold;
+    }
+
+    .user-actions {
+        display: flex;
+        align-items: center;
+    }
+
+    .logout-btn {
+        background-color: #0077a3;
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        margin-right: 1rem;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    /* Layout */
+    .container {
+        display: flex;
+        justify-content: space-between;
+        padding: 2rem;
+    }
+
+    .form-section {
+        width: 20%;
+        margin-right: 2rem;
+    }
+
+    .camera-section {
+        width: 50%;
+        text-align: center;
+    }
+
+    .image-section {
+        width: 19%;
+        margin-left: 19px;
+    }
+
+    /* Inputs */
+    input,
+    select,
+    button {
+        width: 100%;
+        margin-bottom: 1rem;
+        padding: 0.5rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+
+    /* Tabs */
+    .tabs {
+        display: flex;
+        margin-bottom: 1rem;
+    }
+
+    .tabs button {
+        flex: 1;
+        padding: 0.5rem;
+        border: none;
+        background: #f0f0f0;
+        cursor: pointer;
+    }
+
+    .tabs .active {
+        background: white;
+        border-bottom: 2px solid #007ea7;
+    }
+
+    /* Sliders */
+    .sliders label {
+        display: block;
+        margin: 1rem 0 0.2rem;
+    }
+
+    .sliders input[type="range"] {
+        width: 100%;
+    }
+
+    /* Image Grid */
+    .image-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+        margin-top: 26rem;
+        margin-left: -50rem;
+        padding: 4px 0rem;
+    }
+
+    .image-grid img {
+        width: 100%;
+        cursor: pointer;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+    }
+
+    .image-grid .image-item {
+        position: relative;
+        text-align: center;
+    }
+
+    .image-item .date {
+        font-size: 0.8rem;
+        color: #555;
+        margin-top: 0.5rem;
+    }
+
+    /* Modal */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal.show {
+        display: flex;
+    }
+
+    .modal-content {
+        background: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        max-width: 90%;
+        max-height: 90%;
+        overflow: auto;
+        position: relative;
+    }
+
+    .modal-content img,
+    .modal-content video {
+        max-width: 100%;
+        max-height: 80vh;
+    }
+
+    .close-btn {
+        position: absolute;
+        top: 10px;
+        right: 20px;
+        font-size: 30px;
+        color: white;
+        cursor: pointer;
+        z-index: 1100;
+    }
+
+    /* Misc */
+    h1 {
+        margin-top: 0;
+    }
+
+    @keyframes blink {
+        0% { opacity: 1; }
+        50% { opacity: 0; }
+        100% { opacity: 1; }
+    }
+
+    .blink {
+        animation: blink 1s infinite;
+    }
+   </style>
+
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="brand" style="color: #3399cc;">
+        <strong>{{agency_name}}</strong>
+    </div>
+    <div class="nav-links">
+        <a href="/dashboard">Home</a>
+        <a href="/camera" class="active">Camera</a>
+        <a href="/patient_history">Patient History</a>
+        <a href="/setting">Settings</a>
+    </div>
+    <div class="user-actions">
+        <button class="logout-btn" onclick="window.location.href = '/'">Logout</button>
+    </div>
+</nav>
+
+<main class="container">
+    <!-- Patient Registration Form -->
+    <section class="form-section">
+        <h2 style="color:#0077a3;">Patient Registration</h2>
+        <form id="patientForm">
+            <input type="text" name="id" placeholder="Patient ID">
+            <input type="text" name="patient_name" placeholder="Patient Name">
+            <select name="gender">
+                <option value="">Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Transgender">Transgender</option>
+            </select>
+            <input type="date" name="dob" placeholder="Date of Birth">
+            <input type="text" name="phone" placeholder="Phone No.">
+            <input type="text" name="address" placeholder="Address">
+            <button style="background-color:#0077a3;" type="submit">Save</button>
+        </form>
+    </section>
+
+    <!-- Camera Section -->
+    <section class="camera-section">
+        <h1>Live Camera</h1>
+        <div style="position: relative; display: inline-block;">
+            <img src="{{ url_for('video_feed') }}" width="640" height="480">
+            <div id="recordingStatus"
+                 style="display: none; position: absolute; top: 10px; left: 10px;
+                        background: rgba(0, 0, 0, 0.6); color: white;
+                        padding: 5px 10px; border-radius: 5px; font-size: 16px;">
+                <span id="recordingDot" style="color: red; font-weight: bold;">●</span>
+                <span id="recordingTimer" style="margin-left: 8px;">00:00</span>
+            </div>
+        </div>
+
+        <br><br>
+
+        <button id="captureButton"
+                style="width:150px; background-color: #28a745;"
+                onclick="captureImage()">Capture</button>
+
+        <div id="loadingIcon" style="display:none;">
+            <img src="static/loading.gif" alt="Loading..." />
+        </div>
+
+        <button id="startRecordingBtn"
+                style="width:150px; background-color: #007BFF;"
+                onclick="startRecording()">Start Recording</button>
+
+        <button id="stopRecordingBtn"
+                style="width:150px; background-color: #DC3545;"
+                onclick="stopRecording()">Stop Recording</button>
+    </section>
+
+    <!-- Image and Video Grid with Sliders -->
+    <section class="image-section">
+        <h3>Recent Images</h3>
+
+        <div class="sliders">
+            <label for="zoom">Zoom</label>
+            <input type="range" id="zoom" min="1" max="2" step="0.1" value="1" onchange="setZoom(this.value)">
+            <label for="brightness">Brightness</label>
+            <input type="range" id="brightness" min="-100" max="100" step="1" value="0" onchange="setBrightness(this.value)">
+        </div>
+
+        <div id="captured-images" class="image-grid">
+            {% for file in files %}
+                <div class="image-item">
+                    {% if file.endswith('.jpg') or file.endswith('.jpeg') or file.endswith('.png') %}
+                        <img src="{{ url_for('temp_images', filename=file) }}"
+                             alt="Patient Image"
+                             onclick="showModal(this.src)">
+                    {% elif file.endswith('.mp4') or file.endswith('.avi') %}
+                        <video width="100%" controls onclick="showModal(this.querySelector('source').src, true)">
+                            <source src="{{ url_for('serve_temp_video', filename=file) }}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                    {% endif %}
+                    <div class="date">Filename: {{ file }}</div>
+                </div>
+            {% endfor %}
+        </div>
+    </section>
+</main>
+
+<!-- Modal for Preview -->
+<div id="imageModal" class="modal">
+    <span class="close-btn" onclick="closeModal()">&times;</span>
+    <div class="modal-content" style="position: relative;">
+        <img id="modalImage" src="" alt="Preview" style="display:none; width:100%;">
+        <video id="videoPlayer" width="640" height="360" controls style="display:none;">
+            <source id="modalVideoSource" src="" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+        <canvas id="drawCanvas" style="position:absolute; top:0; left:0; display:none; z-index:10;"></canvas>
+        <button id="penToggleBtn"
+                onclick="toggleDrawing()"
+                style="position:absolute; top:10px; right:10px; z-index:20;">
+            Red🖊️
+        </button>
+    </div>
+</div>
+
+
+<script>
+// ===== Utility Functions =====
+
+function getQueryParam(name) {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get(name);
+}
+
+function formatTime(seconds) {
+    const mins = String(Math.floor(seconds / 60)).padStart(2, '0');
+    const secs = String(seconds % 60).padStart(2, '0');
+    return `${mins}:${secs}`;
+}
+
+// ===== Camera Controls =====
+
+function setZoom(value) {
+    fetch('/set_zoom', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'zoom=' + value
+    });
+}
+
+function setBrightness(value) {
+    fetch('/set_brightness', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'brightness=' + value
+    });
+}
+
+// ===== Capture and Recording =====
+
+function captureImage() {
+    const form = document.getElementById('patientForm');
+    const isFormEmpty = [...form.elements].every(el => !el.value || el.type === "submit");
+    const patientName = form.elements['patient_name'].value.trim().replace(/\s+/g, '_') || 'unknown';
+    const publicFlag = isFormEmpty ? 'true' : 'false';
+    const captureUrl = `/capture_photo/${publicFlag}/${encodeURIComponent(patientName)}`;
+    const loadingIcon = document.getElementById('loadingIcon');
+    const rawPatientId = form.elements['id']?.value.trim();
+    const patientId = rawPatientId === "" ? null : rawPatientId;
+    captureButton.disabled = true;
+    loadingIcon.style.display = 'block';
+
+    fetch(captureUrl, { method: 'POST' })
+        .then(response => response.ok && loadCapturedImages(patientId))
+        .finally(() => {
+            captureButton.disabled = false;
+            loadingIcon.style.display = 'none';
+        });
+}
+
+function startRecording() {
+    const form = document.getElementById('patientForm');
+    const isFormEmpty = [...form.elements].every(el => !el.value || el.type === "submit");
+    const patientName = form.elements['patient_name'].value.trim().replace(/\s+/g, '_') || 'unknown';
+    const flag = isFormEmpty ? 'true' : 'false';
+    const startRecordingUrl = `/start_recording/${flag}/${encodeURIComponent(patientName)}`;
+
+    fetch(startRecordingUrl, { method: 'POST' })
+        .then(response => {
+            if (response.ok) {
+                document.getElementById("recordingStatus").style.display = "inline-block";
+                document.getElementById("recordingDot").classList.add("blink");
+                secondsElapsed = 0;
+                document.getElementById("recordingTimer").textContent = "00:00";
+
+                timerInterval = setInterval(() => {
+                    secondsElapsed++;
+                    document.getElementById("recordingTimer").textContent = formatTime(secondsElapsed);
+                }, 1000);
+            }
+        });
+}
+
+function stopRecording() {
+    fetch('/stop_recording', { method: 'POST' })
+        .then(response => {
+            if (response.ok) {
+                document.getElementById("recordingStatus").style.display = "none";
+                document.getElementById("recordingDot").classList.remove("blink");
+                clearInterval(timerInterval);
+            }
+        });
+}
+
+// ===== Modal Preview (Image/Video) =====
+
+function showModal(src, isVideo = false) {
+    const modal = document.getElementById('imageModal');
+    const image = document.getElementById('modalImage');
+    const video = document.getElementById('videoPlayer');
+    const videoSource = document.getElementById('modalVideoSource');
+    const canvas = document.getElementById('drawCanvas');
+    const ctx = canvas.getContext('2d');
+
+    image.onload = () => {
+        resizeCanvasToMedia();
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    };
+
+    if (!isVideo) canvas.style.display = penEnabled ? 'block' : 'none';
+
+    if (isVideo) {
+        image.style.display = 'none';
+        video.style.display = 'block';
+        video.pause();
+        videoSource.src = src;
+        video.load();
+        video.onloadeddata = () => video.play().catch(err => console.warn("Autoplay failed:", err));
+    } else {
+        video.pause();
+        video.style.display = 'none';
+        image.style.display = 'block';
+        image.src = src;
+    }
+
+    modal.classList.add('show');
+    setTimeout(resizeCanvasToMedia, 300);
+}
+
+function closeModal() {
+    const image = document.getElementById('modalImage');
+    const canvas = document.getElementById('drawCanvas');
+    const form = document.getElementById('patientForm');
+    const rawPatientId = form.elements['id']?.value.trim();
+    const patientId = rawPatientId === "" ? null : rawPatientId;
+
+    if (image && canvas && image.style.display === 'block' && penEnabled) {
+        // Merge image + drawing
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+
+        tempCanvas.width = canvas.width;
+        tempCanvas.height = canvas.height;
+
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => {
+            tempCtx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            tempCtx.drawImage(canvas, 0, 0);
+
+            const base64Image = tempCanvas.toDataURL("image/jpeg");
+
+            fetch('/save_edited_image', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    image_data: base64Image,
+                    original_filename: image.src.split('/').pop()
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    console.log("Changes saved on modal close.");
+                    loadCapturedImages(patientId); // Refresh grid with updated image
+                } else {
+                    console.error("Save failed:", data);
+                }
+            });
+        };
+        img.src = image.src;
+    }
+
+    document.getElementById('imageModal').style.display = 'none';
+}
+
+// ===== Drawing on Canvas =====
+
+let isDrawing = false;
+let penEnabled = false;
+const canvas = document.getElementById('drawCanvas');
+const ctx = canvas.getContext('2d');
+
+function toggleDrawing() {
+    penEnabled = !penEnabled;
+    canvas.style.display = penEnabled ? 'block' : 'none';
+}
+
+canvas.addEventListener('mousedown', e => {
+    if (!penEnabled) return;
+    isDrawing = true;
+    ctx.beginPath();
+    ctx.moveTo(e.offsetX, e.offsetY);
+});
+
+canvas.addEventListener('mousemove', e => {
+    if (isDrawing && penEnabled) {
+        ctx.lineTo(e.offsetX, e.offsetY);
+        ctx.strokeStyle = 'red';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    }
+});
+
+canvas.addEventListener('mouseup', () => {
+    if (penEnabled) {
+        isDrawing = false;
+        ctx.closePath();
+    }
+});
+
+function resizeCanvasToMedia() {
+    const image = document.getElementById('modalImage');
+    const video = document.getElementById('videoPlayer');
+
+    const width = image.style.display === 'block' ? image.clientWidth : video.clientWidth;
+    const height = image.style.display === 'block' ? image.clientHeight : video.clientHeight;
+
+    canvas.width = width;
+    canvas.height = height;
+    canvas.style.width = width + 'px';
+    canvas.style.height = height + 'px';
+}
+
+// ===== Patient Data & Image Loading =====
+
+function loadCapturedImages(patientId) {
+    const encodedId = patientId ? encodeURIComponent(patientId) : 'null';
+
+    fetch(`/get_captured_image/${encodedId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data && data.images) {
+                loadImageGrid(data.images);
+            }
+        })
+        .catch(error => console.error('Error loading captured images:', error));
+}
+
+function loadImageGrid(images = [], videos = []) {
+    const container = document.getElementById('captured-images');
+    if (!container) return;
+    container.innerHTML = '';
+
+    // Sort images by date descending
+    const sortedImages = images.slice().sort((a, b) => {
+        const extractDate = (filename) => {
+            const match = filename.match(/img_(\d{2})_(\d{2})_(\d{4})/);
+            if (!match) return null;
+            const [_, day, month, year] = match;
+            return new Date(`${year}-${month}-${day}`);
+        };
+
+        const dateA = extractDate(a);
+        const dateB = extractDate(b);
+
+        if (!dateA) return 1;
+        if (!dateB) return -1;
+        return dateB - dateA; // Descending order
+    });
+
+    sortedImages.forEach(imagePath => {
+        const imageUrl = '/temp_images/' + encodeURIComponent(imagePath);
+        const match = imagePath.match(/img_(\d{2})_(\d{2})_(\d{4})/);
+        let formattedDate = 'Unknown Date';
+        if (match) {
+            const [_, day, month, year] = match;
+            formattedDate = `${day}-${month}-${year}`;
+        }
+
+        container.innerHTML += `
+            <div class="image-item">
+                <img src="${imageUrl}" alt="Captured Image" onclick="showModal('${imageUrl}')">
+                <div class="date">Date: ${formattedDate}</div>
+            </div>`;
+    });
+
+    // Videos (you can sort similarly if needed)
+    videos.forEach(videoPath => {
+        const videoUrl = '/temp_videos/' + encodeURIComponent(videoPath);
+        const ext = videoPath.split('.').pop().toLowerCase();
+        const mimeType = ext === 'avi' ? 'video/x-msvideo' :
+                         ext === 'mp4' ? 'video/mp4' : 'video/*';
+
+        container.innerHTML += `
+            <div class="image-item">
+                <video width="100%" controls onclick="showModal('${videoUrl}', true)">
+                    <source src="${videoUrl}" type="${mimeType}">
+                    Your browser does not support the video tag.
+                </video>
+                <div class="date">Filename: ${videoPath}</div>
+            </div>`;
+    });
+}
+
+function loadPatientData(patientId) {
+    fetch(`/get_patient/${patientId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data && data.status === 'success') {
+                const form = document.getElementById('patientForm');
+                form.elements['id'].value = data.patient.id;
+                form.elements['patient_name'].value = data.patient.patient_name;
+                form.elements['gender'].value = data.patient.gender;
+                form.elements['dob'].value = data.patient.dob;
+                form.elements['phone'].value = data.patient.phone;
+                form.elements['address'].value = data.patient.address;
+            }
+            loadImageGrid(data.images, data.videos);
+        })
+        .catch(error => console.error('Error loading patient data:', error));
+}
+
+// ===== Form Submission =====
+
+document.getElementById('patientForm').addEventListener('submit', function (event) {
+    event.preventDefault();
+    const formData = new FormData(this);
+    fetch('/save_patient', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'ok') {
+            console.log('Patient saved successfully!');
+        } else {
+            console.error('Failed to save patient.');
+        }
+    })
+    .catch(error => console.error('Error saving patient:', error));
+});
+
+// ===== Lifecycle Hooks =====
+
+let timerInterval;
+let secondsElapsed = 0;
+
+document.addEventListener('DOMContentLoaded', () => {
+    const pid = getQueryParam('patient_id');
+    if (pid) loadPatientData(pid);
+});
+
+window.addEventListener('beforeunload', () => {
+    navigator.sendBeacon('/shutdown');
+});
+</script>
+
+</body>
+</html>

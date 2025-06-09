@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Patient History</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      background-color: #fff;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 2rem;
+      background-color: white;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    .logo {
+      font-size: 1.8rem;
+      font-weight: bold;
+      color: #4a9bb7;
+    }
+    .logo span {
+      display: block;
+      font-size: 1rem;
+      font-weight: normal;
+      color: #5ba6c3;
+    }
+    nav a {
+      margin: 0 1rem;
+      text-decoration: none;
+      font-weight: bold;
+      color: black;
+    }
+    nav a.active {
+      color: #4a9bb7;
+    }
+    .logout-btn {
+      padding: 0.5rem 1.5rem;
+      background-color: #4a9bb7;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .container {
+      padding: 2rem;
+    }
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    thead {
+      background-color: #5ba6c3;
+      color: white;
+    }
+    th, td {
+      text-align: center;
+      padding: 1rem;
+      border: 1px solid #d8f1f8;
+    }
+    tbody tr:nth-child(even) {
+      background-color: #f6fcfe;
+    }
+    .icon {
+      cursor: pointer;
+    }
+    .navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: white;
+    padding: -1rem 22rem;
+    border-bottom: 0px solid #ccc;
+}
+
+.brand strong {
+    font-size: 1.5rem;
+    color: #0077a3;
+}
+
+.brand span {
+    font-size: 0.9rem;
+    color: #3399cc;
+}
+
+.nav-links a {
+    margin: 0 1rem;
+    text-decoration: none;
+    font-weight: bold;
+    color: black;
+}
+
+  </style>
+
+</head>
+<body>
+
+  <header>
+    <script>
+function openHistoryModal(dates) {
+  let modal = document.getElementById("historyModal");
+
+  if (!modal) {
+    modal = document.createElement("div");
+    modal.id = "historyModal";
+    modal.style.position = "fixed";
+    modal.style.top = "50%";
+    modal.style.left = "50%";
+    modal.style.transform = "translate(-50%, -50%)";
+    modal.style.backgroundColor = "#fff";
+    modal.style.border = "1px solid #ccc";
+    modal.style.padding = "20px";
+    modal.style.zIndex = "1000";
+    modal.style.maxHeight = "300px";
+    modal.style.overflowY = "auto";
+    modal.style.boxShadow = "0 0 10px rgba(0, 0, 0, 0.2)";
+    modal.style.width = "300px";
+    modal.style.position = "fixed";
+
+    modal.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0;color: #0077a3;">Visit History</h3>
+        <span onclick="document.getElementById('historyModal').remove()"
+              style="cursor: pointer; font-size: 20px; font-weight: bold;">&times;</span>
+      </div>
+      <hr>
+      <ul id="historyDatesList" style="margin-top: 10px;"></ul>
+    `;
+
+    document.body.appendChild(modal);
+  }
+
+  const list = modal.querySelector("#historyDatesList");
+  list.innerHTML = "";
+
+  if (Array.isArray(dates) && dates.length) {
+    dates.forEach(date => {
+      const li = document.createElement("li");
+      li.textContent = date;
+      list.appendChild(li);
+    });
+  } else {
+    list.innerHTML = "<li>No visit history found.</li>";
+  }
+}
+</script>
+
+ <div class="brand">
+            <strong>{{agency_name}}</strong>
+        </div>
+     <nav class="navbar">
+        <div class="nav-links">
+            <a href="/dashboard" >Home</a>
+            <a href="/camera">Camera</a>
+            <a href="/patient_history" class="active">Patient History</a>
+            <a href="/setting">Settings</a>
+        </div>
+
+    </nav>
+      <div class="user-actions">
+        <button class="logout-btn" onclick="window.location.href = '/'">Logout</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <h1>Patient History</h1>
+    <table>
+      <thead>
+        <tr>
+          <th>Patient ID</th>
+          <th>Patient name</th>
+          <th>Last visited</th>
+          <th>Visit history</th>
+          <th>Generate PDF</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for dto in dto_list %}
+        <tr>
+          <td>
+          <a href="/camera?patient_id={{ dto.patient_id }}" style="color:#0077a3; text-decoration: underline;">
+          {{ dto.appointment_id }}
+          </a>
+          </td>
+          <td>{{ dto.patient_name }}</td>
+          <td>{{ dto.last_visited or "N/A" }}</td>
+          <td>
+    <span class="icon" onclick='openHistoryModal({{ dto.visit_dates | tojson | safe }})'>👁️</span>
+  </td>
+          <td><span class="icon" onclick="location.href='/pdf_gen/{{ dto.patient_id }}/{{dto.patient_name}}'">📄</span></td>
+        </tr>
+        {% endfor %}
+
+        {# Padding rows for UI consistency (if less than 3 rows) #}
+        {% for _ in range(3 - dto_list|length) %}
+        <tr><td colspan="5">&nbsp;</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</body>
+</html>

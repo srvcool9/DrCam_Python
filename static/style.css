@@ -58,10 +58,12 @@ body {
 }
 
 .dashboard {
-    display: grid;
+    display: flex;
+    justify-content: start;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 170px;
-    height: 500px;
+    gap: 120px;
+    flex-wrap: wrap;
+    /* height: 490px; */
     padding: 5rem;
     background: #e0f2f5;
 }

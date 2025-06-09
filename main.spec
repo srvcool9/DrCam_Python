@@ -1,11 +1,13 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 
+project_root = os.path.abspath('.')
+
 a = Analysis(
     ['main.py'],
-    pathex=[],
+    pathex=[project_root],
     binaries=[],
-    datas=[('src/templates', 'templates'), ('src/static', 'static')],
+    datas=[('templates', 'templates'), ('static', 'static')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
