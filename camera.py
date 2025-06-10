@@ -3,6 +3,8 @@ import ctypes
 import shutil
 from pathlib import Path
 import re
+
+import ffmpeg
 from PIL import Image
 from io import BytesIO
 
@@ -38,6 +40,9 @@ zoom = 1.0
 brightness = 0
 lock = threading.Lock()
 cam = None
+contrast = 0
+exposure = 0
+white_balance = 0
 
 # CAPTURE_DIR = 'static/captures'
 # os.makedirs(CAPTURE_DIR, exist_ok=True)
@@ -52,7 +57,7 @@ prefilled_videos_list=[]
 def register_camera(app):
 
  def initialize_camera():
-    global cam
+    global cam,exposure,white_balance
     graph = FilterGraph()
     devices = graph.get_input_devices()
     logging.debug(f"Available Cameras: {devices}")
@@ -72,6 +77,13 @@ def register_camera(app):
     index = devices.index(target_device_name)
     logging.info(f"Using camera: {target_device_name} at index {index}")
     cam = cv2.VideoCapture(index, cv2.CAP_DSHOW)
+    exposure = cam.get(cv2.CAP_PROP_EXPOSURE)
+    white_balance = cam.get(cv2.CAP_PROP_WHITE_BALANCE_BLUE_U)
+    if exposure == -1:  # Property unsupported, set default 0
+        exposure = 0
+    if white_balance == -1:
+        white_balance = 0
+
 
     if not cam.isOpened():
         logging.error("Failed to open selected camera.")
@@ -88,7 +100,7 @@ def register_camera(app):
     return cv2.resize(cropped, (w, h))
 
  def generate_frames():
-    global cam, recording, out, zoom, brightness
+    global cam, recording, out, zoom, brightness,contrast
 
     if cam is None or not cam.isOpened():
         yield (b'--frame\r\n'
@@ -102,7 +114,10 @@ def register_camera(app):
                 break
 
             frame = apply_zoom(frame, zoom)
-            frame = cv2.convertScaleAbs(frame, alpha=1, beta=brightness)
+            alpha = 1.0 + contrast / 100.0  # Contrast control (1.0 is no change)
+            beta = brightness  # Brightness control (0 is no change)
+            frame = cv2.convertScaleAbs(frame, alpha=alpha, beta=beta)
+            #frame = cv2.convertScaleAbs(frame, alpha=1, beta=brightness)
 
             if recording and out:
                 out.write(frame)
@@ -136,33 +151,96 @@ def register_camera(app):
     brightness = int(request.form['brightness'])
     return ('', 204)
 
- @app.route('/start_recording/<string:public_flag>/<string:patient_name>', methods=['POST'])
- def start_recording(public_flag,patient_name):
-    global recording, out, cam,videos_path_list,videos_file_names
-    with lock:
-        if cam and cam.isOpened():
-            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-            width = int(cam.get(cv2.CAP_PROP_FRAME_WIDTH))
-            height = int(cam.get(cv2.CAP_PROP_FRAME_HEIGHT))
-            timestamp = datetime.now().strftime("%d_%m_%Y_%H%M%S%f")
-            filename = f"vid_{timestamp}.mp4"
-            if public_flag.lower() == 'true':
-                path = os.path.join(_get_documents_path(), 'DrCamApp', 'public', 'videos')
-                videos_path_list.append(path +'/' + filename)
-            else:
-                path = os.path.join(_get_documents_path(), 'DrCamApp', 'temp', 'videos')
-                videos_file_names.append(filename)
-                videos_path_list.append(path + '/' + filename)
-                temp_path = os.path.join(app.root_path, 'temp_images', 'videos')
-                os.makedirs(temp_path, exist_ok=True)
-                final_temp_path=os.path.join(temp_path, filename)
-                out = cv2.VideoWriter(final_temp_path, fourcc, 20.0, (width, height))
+ @app.route('/set_contrast', methods=['POST'])
+ def set_contrast():
+     global contrast
+     contrast = int(request.form['contrast'])
+     return ('', 204)
 
-            os.makedirs(path, exist_ok=True)
-            full_path = os.path.join(path, filename)
-            out = cv2.VideoWriter(full_path, fourcc, 20.0, (width, height))
-            recording = True
-    return ('', 204)
+ @app.route('/set_exposure', methods=['POST'])
+ def set_exposure():
+     global exposure, cam
+     #exposure = float(request.form['exposure'])
+     # with lock:
+     #     if cam and cam.isOpened():
+     #         cam.set(cv2.CAP_PROP_EXPOSURE, exposure)
+     return ('', 204)
+
+ @app.route('/set_white_balance', methods=['POST'])
+ def set_white_balance():
+     global white_balance, cam
+     white_balance = float(request.form['white_balance'])
+     with lock:
+         if cam and cam.isOpened():
+             cam.set(cv2.CAP_PROP_WHITE_BALANCE_BLUE_U, white_balance)
+     return ('', 204)
+
+ @app.route('/set_framerate', methods=['POST'])
+ def set_framerate():
+     global frame_rate
+     try:
+         frame_rate = float(request.form['framerate'])
+         if frame_rate <= 0:
+             frame_rate = 20.0
+     except:
+         frame_rate = 20.0
+     return ('', 204)
+
+ @app.route('/start_recording/<string:public_flag>/<string:patient_name>', methods=['POST'])
+ def start_recording(public_flag, patient_name):
+     global recording, out, cam, videos_path_list, videos_file_names
+     with lock:
+         if cam and cam.isOpened():
+             fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+             width = int(cam.get(cv2.CAP_PROP_FRAME_WIDTH))
+             height = int(cam.get(cv2.CAP_PROP_FRAME_HEIGHT))
+             timestamp = datetime.now().strftime("%d_%m_%Y_%H%M%S%f")
+             filename = f"vid_{timestamp}.mp4"
+
+             if public_flag.lower() == 'true':
+                 path = os.path.join(_get_documents_path(), 'DrCamApp', 'public', 'videos')
+                 full_path = os.path.join(path, filename)
+                 videos_path_list.append(full_path)
+             else:
+                 path = os.path.join(_get_documents_path(), 'DrCamApp', 'temp', 'videos')
+                 full_path = os.path.join(path, filename)
+                 videos_file_names.append(filename)
+                 videos_path_list.append(full_path)
+
+             os.makedirs(path, exist_ok=True)
+             out = cv2.VideoWriter(full_path, fourcc, 20.0, (width, height))
+             recording = True
+             print(f"✅ Started recording: {full_path}")
+     return ('', 204)
+
+ @app.route('/stop_recording', methods=['POST'])
+ def stop_recording():
+     global recording, out, videos_path_list
+     with lock:
+         recording = False
+         if out:
+             out.release()
+             out = None
+             print("🛑 Recording stopped.")
+
+         # Convert last recorded video to browser-compatible format
+         if videos_path_list:
+             original_path = videos_path_list[-1]
+             converted_path = original_path.replace('.mp4', '_converted.mp4')
+
+             try:
+                 ffmpeg.input(original_path).output(
+                     converted_path,
+                     vcodec='libx264',
+                     movflags='faststart',
+                     preset='ultrafast',
+                     crf=23
+                 ).run(overwrite_output=True)
+                 print(f"✅ Converted video saved to: {converted_path}")
+             except Exception as e:
+                 print(f"❌ FFmpeg conversion failed: {e}")
+
+     return ('', 204)
 
  @app.route('/get_captured_image/<string:patient_id>', methods=['GET'])
  def get_captured_images(patient_id):
@@ -188,16 +266,10 @@ def register_camera(app):
 
      return jsonify({'images': images_list})
 
- @app.route('/stop_recording', methods=['POST'])
- def stop_recording():
-    global recording, out
-    with lock:
-        recording = False
-        if out:
-            out.release()
-            out = None
-    return ('', 204)
-
+ @app.route('/get_patient_id_name/<string:patient_id>', methods=['GET'])
+ def get_patient_details(patient_id):
+     patient=db.query_by_column('patients','appointmentId',patient_id,PatientsModel.from_map)
+     return jsonify({'patient_id': patient.patient_id,'patient_name':patient.patient_name})
 
  @app.route('/capture_photo/<string:public_flag>/<string:patient_name>', methods=['POST'])
  def capture_photo(public_flag,patient_name):

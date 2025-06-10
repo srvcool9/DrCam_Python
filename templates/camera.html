@@ -114,7 +114,7 @@
         display: grid;
         grid-template-columns: repeat(4, 1fr);
         gap: 10px;
-        margin-top: 26rem;
+        margin-top: 7rem;
         margin-left: -50rem;
         padding: 4px 0rem;
     }
@@ -277,6 +277,13 @@
             <input type="range" id="zoom" min="1" max="2" step="0.1" value="1" onchange="setZoom(this.value)">
             <label for="brightness">Brightness</label>
             <input type="range" id="brightness" min="-100" max="100" step="1" value="0" onchange="setBrightness(this.value)">
+            <label for="contrast">Contrast</label>
+            <input type="range" id="contrast" min="-100" max="100" step="1" value="0" onchange="setContrast(this.value)">
+            <label for="exposure">Exposure</label>
+            <input type="range" id="exposure" min="-13" max="0" step="1" value="{{ exposure }}" onchange="setExposure(this.value)">
+            <label for="white_balance">White Balance</label>
+            <input type="range" id="white_balance" min="2800" max="6500" step="100" value="{{ white_balance }}" onchange="setWhiteBalance(this.value)">
+            <button class="btn" id="reset_button" aria-label="Reset settings button" style="background: #ef4444;">Reset</button>
         </div>
 
         <div id="captured-images" class="image-grid">
@@ -295,6 +302,9 @@
                     <div class="date">Filename: {{ file }}</div>
                 </div>
             {% endfor %}
+        </div>
+        <div class="button-container" id="pdfButtonContainer"  aria-live="polite">
+           <button type="button" id="generatePdfButton">Generate PDF</button>
         </div>
     </section>
 </main>
@@ -319,6 +329,8 @@
 
 
 <script>
+
+
 // ===== Utility Functions =====
 
 function getQueryParam(name) {
@@ -348,6 +360,118 @@ function setBrightness(value) {
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: 'brightness=' + value
     });
+}
+
+function setContrast(value) {
+            fetch('/set_contrast', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'contrast=' + value
+            });
+}
+
+function setExposure(value) {
+    fetch('/set_exposure', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'exposure=' + value
+    });
+}
+
+function setWhiteBalance(value) {
+    fetch('/set_white_balance', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'white_balance=' + value
+    });
+}
+document.getElementById('reset_button').addEventListener('click', async () => {
+  // Call the reset function to reset all camera settings to defaults
+  await resetCameraSettings();
+
+  // Optionally, add gentle feedback to user
+  const resetBtn = document.getElementById('reset_button');
+  resetBtn.textContent = 'Resetting...';
+  resetBtn.disabled = true;
+  setTimeout(() => {
+    resetBtn.textContent = 'Reset';
+    resetBtn.disabled = false;
+  }, 1200);
+});
+
+
+async function resetCameraSettings() {
+  // Reset UI to typical default values
+  const defaults = {
+    zoom: 1,
+    brightness: 0,
+    contrast: 0,
+    exposure: 0,            // Typical default exposure; adjust as needed
+    white_balance: 4600,     // Typical white balance temperature; adjust as needed
+    filename: 'output.mp4',
+    framerate: 20
+  };
+
+  // Update sliders and inputs visually
+  document.getElementById('zoom').value = defaults.zoom;
+  document.getElementById('brightness').value = defaults.brightness;
+  document.getElementById('contrast').value = defaults.contrast;
+  document.getElementById('exposure').value = defaults.exposure;
+  document.getElementById('white_balance').value = defaults.white_balance;
+  document.getElementById('filename').value = defaults.filename;
+
+  // Update output elements if present
+  const outputMapping = {
+    zoomOutput: defaults.zoom,
+    brightnessOutput: defaults.brightness,
+    contrastOutput: defaults.contrast,
+    exposureOutput: defaults.exposure,
+    whiteBalanceOutput: defaults.white_balance
+  };
+  for (const id in outputMapping) {
+    const el = document.getElementById(id);
+    if(el) el.value = outputMapping[id];
+  }
+
+  // Post requests to backend to set values
+  await Promise.all([
+    fetch('/set_zoom', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'zoom=' + defaults.zoom
+    }),
+    fetch('/set_brightness', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'brightness=' + defaults.brightness
+    }),
+    fetch('/set_contrast', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'contrast=' + defaults.contrast
+    }),
+    fetch('/set_exposure', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'exposure=' + defaults.exposure
+    }),
+    fetch('/set_white_balance', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'white_balance=' + defaults.white_balance
+    }),
+    fetch('/set_filename', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'filename=' + encodeURIComponent(defaults.filename)
+    }),
+    fetch('/set_framerate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'framerate=' + defaults.framerate
+    }),
+
+  ]);
 }
 
 // ===== Capture and Recording =====
@@ -658,6 +782,40 @@ document.addEventListener('DOMContentLoaded', () => {
 window.addEventListener('beforeunload', () => {
     navigator.sendBeacon('/shutdown');
 });
+
+generatePdfButton.addEventListener('click', function() {
+     const form = document.getElementById('patientForm');
+    const rawPatientId = form.elements['id']?.value.trim();
+    const patientId = rawPatientId === "" ? null : rawPatientId;
+
+      if (patientId) {
+        // Fetch patient details from the server
+        fetch(`/get_patient_id_name/${patientId}`)
+          .then(response => {
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+          })
+          .then(data => {
+            const patientIdFromServer = data.patient_id;
+            const patientName = data.patient_name; // Access patient name from the response
+            if (patientName) {
+              window.location.href = `/pdf_gen/${patientIdFromServer}/${patientName}`;
+            } else {
+              console.warn('Patient name not found for ID:', patientId);
+            }
+          })
+          .catch(error => {
+            console.error('Error fetching patient details:', error);
+          });
+      } else {
+        console.warn('Patient ID is required to generate PDF.');
+      }
+    });
+
+
+
 </script>
 
 </body>
