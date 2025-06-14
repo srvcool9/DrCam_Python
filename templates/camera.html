@@ -540,6 +540,8 @@ function showModal(src, isVideo = false) {
     const canvas = document.getElementById('drawCanvas');
     const ctx = canvas.getContext('2d');
 
+    const bustSrc = src + '?t=' + new Date().getTime(); // cache-buster
+
     image.onload = () => {
         resizeCanvasToMedia();
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -551,19 +553,24 @@ function showModal(src, isVideo = false) {
         image.style.display = 'none';
         video.style.display = 'block';
         video.pause();
-        videoSource.src = src;
+        videoSource.src = '';
+        video.load();
+        videoSource.src = bustSrc;
         video.load();
         video.onloadeddata = () => video.play().catch(err => console.warn("Autoplay failed:", err));
     } else {
         video.pause();
         video.style.display = 'none';
         image.style.display = 'block';
-        image.src = src;
+        image.src = '';
+        image.src = bustSrc;
     }
 
+    modal.style.display = 'block';
     modal.classList.add('show');
     setTimeout(resizeCanvasToMedia, 300);
 }
+
 
 function closeModal() {
     const image = document.getElementById('modalImage');

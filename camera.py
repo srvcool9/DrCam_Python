@@ -55,39 +55,61 @@ prefilled_image_list=[]
 prefilled_videos_list=[]
 
 def register_camera(app):
-
  def initialize_camera():
-    global cam,exposure,white_balance
-    graph = FilterGraph()
-    devices = graph.get_input_devices()
-    logging.debug(f"Available Cameras: {devices}")
-
-    target_device_name = None
-
-    for name in devices:
-        if "H1600 Cam" or "VMware Virtual USB Video Device" in name:
-            target_device_name = name
-            break
-
-    if not target_device_name:
-        logging.warning("No compatible camera (H1600 Cam) found.")
+        global cam, exposure, white_balance
+        # Initialize to None in case no camera is found or initialization fails
         cam = None
-        return
+        exposure = None
+        white_balance = None
 
-    index = devices.index(target_device_name)
-    logging.info(f"Using camera: {target_device_name} at index {index}")
-    cam = cv2.VideoCapture(index, cv2.CAP_DSHOW)
-    exposure = cam.get(cv2.CAP_PROP_EXPOSURE)
-    white_balance = cam.get(cv2.CAP_PROP_WHITE_BALANCE_BLUE_U)
-    if exposure == -1:  # Property unsupported, set default 0
-        exposure = 0
-    if white_balance == -1:
-        white_balance = 0
+        # Check if FilterGraph is defined before using it
+        try:
+            graph = FilterGraph()
+            devices = graph.get_input_devices()
+            logging.debug(f"Available Cameras: {devices}")
+        except NameError:
+            logging.error("FilterGraph is not defined.  Cannot list available devices.")
+            return
 
+        target_device_name = None
 
-    if not cam.isOpened():
-        logging.error("Failed to open selected camera.")
-        cam = None
+        # Prioritize "H1600 Cam"
+        for name in devices:
+            if "H1600 Cam" in name:
+                target_device_name = name
+                break
+        # If H1600 cam is not found, check for "VMware Virtual USB Video Device"
+        if target_device_name is None:
+            for name in devices:
+                if "VMware Virtual USB Video Device" in name:
+                    target_device_name = name
+                    break
+
+        if not target_device_name:
+            logging.warning("No compatible camera (H1600 Cam or VMware Virtual USB Video Device) found.")
+            return
+
+        try:
+            index = devices.index(target_device_name)
+        except ValueError:
+            logging.error(f"Camera '{target_device_name}' not found in device list after initial detection.")
+            return
+
+        logging.info(f"Using camera: {target_device_name} at index {index}")
+        cam = cv2.VideoCapture(index, cv2.CAP_DSHOW)
+
+        if not cam.isOpened():
+            logging.error("Failed to open selected camera.")
+            cam = None
+            return
+
+        exposure = cam.get(cv2.CAP_PROP_EXPOSURE)
+        white_balance = cam.get(cv2.CAP_PROP_WHITE_BALANCE_BLUE_U)
+
+        if exposure == -1:  # Property unsupported, set default 0
+            exposure = 0
+        if white_balance == -1:
+            white_balance = 0
 
  def apply_zoom(frame, zoom_factor):
     if zoom_factor == 1.0:

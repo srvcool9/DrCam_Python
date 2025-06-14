@@ -1,5 +1,6 @@
 import os
 import shutil
+import subprocess
 from pathlib import Path
 
 
@@ -11,15 +12,18 @@ from db_config.database_service import DatabaseService
 from models.profile_model import ProfileModel
 
 prefilled_image_list = []
-TEMP_IMAGE_DIR = os.path.join(os.getcwd(), "temp_images", "captures")  # Change path as needed
-TEMP_PDF_DIR = os.path.join(os.getcwd(), "temp_images", "pdfs")
-os.makedirs(TEMP_PDF_DIR, exist_ok=True)
+TEMP_IMAGE_DIR = ""
+TEMP_PDF_DIR = ""
+
 
 def register_pdf_route(app):
  db=DatabaseService()
 
  @app.route("/pdf_gen/<int:patient_id>/<string:patient_name>")
  def pdf_generate(patient_id,patient_name):
+    global TEMP_IMAGE_DIR,TEMP_PDF_DIR
+    TEMP_IMAGE_DIR = os.path.join(_get_documents_path(), 'DrCamApp', patient_name, 'images')
+    TEMP_PDF_DIR=os.path.join(_get_documents_path(), patient_name, "pdfs")
     profile = db.query_by_column("doctor_profile", "id", 1, ProfileModel.from_map)
     if (profile and profile.agency_name):
         agency_name = profile.agency_name
@@ -56,6 +60,8 @@ def register_pdf_route(app):
                 prefilled_image_list.append(filename)
         except Exception as e:
             print(f"Failed to copy image: {e}")
+
+
 
  def _get_documents_path():
     """Get Windows 'Documents' folder using SHGetKnownFolderPath"""
@@ -113,6 +119,7 @@ def register_pdf_route(app):
              page_images = selected_images[i:i + images_per_page]
 
              for idx, img_name in enumerate(page_images):
+                 # Determine TEMP_IMAGE_DIR *here*, based on the patient
                  image_path = os.path.join(TEMP_IMAGE_DIR, img_name)
                  if os.path.exists(image_path):
                      row = idx // images_per_row
@@ -126,14 +133,19 @@ def register_pdf_route(app):
          # Save PDF
          pdf_filename = f"selected_images.pdf"
          pdf_path = os.path.join(TEMP_PDF_DIR, pdf_filename)
+         if not os.path.exists(TEMP_PDF_DIR):
+             os.makedirs(TEMP_PDF_DIR)
+             print(f"Created directory: {TEMP_PDF_DIR}")
          pdf.output(pdf_path)
 
-         return send_file(
-             pdf_path,
-             as_attachment=True,
-             download_name=pdf_filename,
-             mimetype="application/pdf"
-         )
+         # Open the PDF using the default PDF viewer
+         try:
+             subprocess.Popen([pdf_path], shell=True)  # Use shell=True on Windows
+         except Exception as e:
+             print(f"Error opening PDF: {e}")
+             return jsonify({"status": "error", "message": "Failed to open PDF"}), 500
+
+         return jsonify({"status": "success", "message": "PDF generated and opened."}), 200
 
      except Exception as e:
          return jsonify({"status": "error", "message": str(e)}), 500
