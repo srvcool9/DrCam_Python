@@ -77,7 +77,8 @@
         margin-bottom: 1rem;
         padding: 0.5rem;
         border: 1px solid #ccc;
-        border-radius: 4px;
+        border-radius: 16px;
+        text-align : center;
     }
 
     /* Tabs */
@@ -163,6 +164,8 @@
         max-height: 90%;
         overflow: auto;
         position: relative;
+        margin-top: 43px;
+        margin-left: 40px;
     }
 
     .modal-content img,
@@ -222,7 +225,7 @@
         <form id="patientForm">
             <input type="text" name="id" placeholder="Patient ID">
             <input type="text" name="patient_name" placeholder="Patient Name">
-            <select name="gender">
+            <select style=" width: 307px;" name="gender">
                 <option value="">Gender</option>
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
@@ -239,7 +242,7 @@
     <section class="camera-section">
         <h1>Live Camera</h1>
         <div style="position: relative; display: inline-block;">
-            <img src="{{ url_for('video_feed') }}" width="640" height="480">
+            <img src="{{ url_for('video_feed') }}" width="750" height="480">
             <div id="recordingStatus"
                  style="display: none; position: absolute; top: 10px; left: 10px;
                         background: rgba(0, 0, 0, 0.6); color: white;
@@ -283,8 +286,11 @@
             <input type="range" id="exposure" min="-13" max="0" step="1" value="{{ exposure }}" onchange="setExposure(this.value)">
             <label for="white_balance">White Balance</label>
             <input type="range" id="white_balance" min="2800" max="6500" step="100" value="{{ white_balance }}" onchange="setWhiteBalance(this.value)">
+            <div style="gap: 10px;display: flex;">
             <button class="btn" id="reset_button" aria-label="Reset settings button" style="background: #ef4444;">Reset</button>
-        </div>
+            <button class="btn" id="save_setting" aria-label="Save settings button" style="background: #0077a3;">Save Setting</button>
+            </div>
+            </div>
 
         <div id="captured-images" class="image-grid">
             {% for file in files %}
@@ -385,9 +391,46 @@ function setWhiteBalance(value) {
         body: 'white_balance=' + value
     });
 }
+
+document.getElementById('save_setting').addEventListener('click', async () => {
+    const zoom = parseFloat(document.getElementById('zoom')?.value || 1);
+    const brightness = parseInt(document.getElementById('brightness')?.value || 0);
+    const contrast = parseInt(document.getElementById('contrast')?.value || 0);
+    const exposure = parseFloat(document.getElementById('exposure')?.value || 0);
+    const whiteBalance = parseFloat(document.getElementById('white_balance')?.value || 0);
+    const frameRate = parseFloat(document.getElementById('framerate')?.value || 20);
+
+    const payload = {
+        zoom,
+        brightness,
+        contrast,
+        exposure,
+        whiteBalance,
+        frameRate
+    };
+
+    try {
+        const response = await fetch('/save_settings', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+        alert(result.message || "Settings saved successfully.");
+    } catch (err) {
+        console.error("Error saving settings:", err);
+        alert("Failed to save settings.");
+    }
+});
+
+
 document.getElementById('reset_button').addEventListener('click', async () => {
   // Call the reset function to reset all camera settings to defaults
   await resetCameraSettings();
+  await deleteSettings();
 
   // Optionally, add gentle feedback to user
   const resetBtn = document.getElementById('reset_button');
@@ -399,6 +442,18 @@ document.getElementById('reset_button').addEventListener('click', async () => {
   }, 1200);
 });
 
+async function deleteSettings() {
+    try {
+        const response = await fetch('/reset_settings', {
+            method: 'POST'
+        });
+        const result = await response.json();
+        alert(result.message || "Settings reset successfully.");
+    } catch (error) {
+        console.error("Failed to reset settings:", error);
+        alert("Failed to reset settings.");
+    }
+}
 
 async function resetCameraSettings() {
   // Reset UI to typical default values

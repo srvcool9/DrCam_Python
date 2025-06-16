@@ -3,7 +3,7 @@
   <component name="Black">
     <option name="sdkName" value="Python 3.11 (DrCam)" />
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.12 virtualenv at C:\My_Drive\Python_Projects\DrCam_Python\.venv" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.12 (DrCam_Python)" project-jdk-type="Python SDK" />
   <component name="PyCharmProfessionalAdvertiser">
     <option name="shown" value="true" />
   </component>

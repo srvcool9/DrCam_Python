@@ -5,7 +5,6 @@ from models.profile_model import ProfileModel
 db=DatabaseService()
 
 def register_login_routes(app):
- print("[DEBUG] register_login_routes called")
 
  @app.route('/', methods=["GET", "POST"])
  def login():

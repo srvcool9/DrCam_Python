@@ -64,6 +64,7 @@ class DatabaseService:
             Queries.PATIENT_HISTORY,
             Queries.PATIENT_IMAGES,
             Queries.PATIENT_VIDEOS,
+            Queries.CAMERA_SETTINGS
         ]
         for query in queries:
             cursor.execute(query)

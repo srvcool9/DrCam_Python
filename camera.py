@@ -24,6 +24,7 @@ from win10toast import ToastNotifier
 
 from contants.queries import Queries
 from db_config.database_service import DatabaseService
+from models.camera_setting import CameraSettingsModel
 from models.patient_history_model import PatientHistoryModel
 from models.patient_images_model import PatientImagesModel
 from models.patient_model import PatientsModel
@@ -43,6 +44,7 @@ cam = None
 contrast = 0
 exposure = 0
 white_balance = 0
+frame_rate=0
 
 # CAPTURE_DIR = 'static/captures'
 # os.makedirs(CAPTURE_DIR, exist_ok=True)
@@ -56,7 +58,7 @@ prefilled_videos_list=[]
 
 def register_camera(app):
  def initialize_camera():
-        global cam, exposure, white_balance
+        global cam, exposure, white_balance, zoom, brightness, contrast, frame_rate
         # Initialize to None in case no camera is found or initialization fails
         cam = None
         exposure = None
@@ -103,13 +105,35 @@ def register_camera(app):
             cam = None
             return
 
-        exposure = cam.get(cv2.CAP_PROP_EXPOSURE)
-        white_balance = cam.get(cv2.CAP_PROP_WHITE_BALANCE_BLUE_U)
+        setting = load_camera_settings()
+        if setting:
+            zoom = setting.zoom
+            brightness = setting.brightness
+            contrast = setting.contrast
+            exposure = setting.exposure
+            white_balance = setting.white_balance
+            frame_rate = setting.framerate
 
-        if exposure == -1:  # Property unsupported, set default 0
-            exposure = 0
-        if white_balance == -1:
-            white_balance = 0
+            with lock:
+                if cam:
+                    cam.set(cv2.CAP_PROP_EXPOSURE, exposure)
+                    cam.set(cv2.CAP_PROP_WHITE_BALANCE_BLUE_U, white_balance)
+        else:
+            # If no saved settings, use defaults
+            zoom = 1.0
+            brightness = 0
+            contrast = 0
+            exposure = 0.0
+            white_balance = 0.0
+            frame_rate = 20.0
+
+        # exposure = cam.get(cv2.CAP_PROP_EXPOSURE)
+        # white_balance = cam.get(cv2.CAP_PROP_WHITE_BALANCE_BLUE_U)
+        #
+        # if exposure == -1:  # Property unsupported, set default 0
+        #     exposure = 0
+        # if white_balance == -1:
+        #     white_balance = 0
 
  def apply_zoom(frame, zoom_factor):
     if zoom_factor == 1.0:
@@ -653,3 +677,78 @@ def register_camera(app):
         print("Error getting Documents path, falling back to home/Documents:", e)
         return Path.home() / "Documents"
 
+ @app.route('/save_settings', methods=['POST'])
+ def save_camera_settings():
+     global zoom, brightness, contrast, exposure, white_balance, frame_rate
+     settings = CameraSettingsModel(
+         zoom=zoom,
+         brightness=brightness,
+         contrast=contrast,
+         exposure=exposure,
+         white_balance=white_balance,
+         frame_rate=frame_rate
+     )
+     existing = db.query_by_column(settings.get_table_name(), "id", 1, CameraSettingsModel.from_map)
+
+     if existing:
+         db.update(settings)
+     else:
+         db.insert(settings)
+
+     return jsonify({"status": "success", "message": "Camera settings saved"})
+
+
+ def load_camera_settings():
+     global zoom, brightness, contrast, exposure, white_balance, frame_rate
+     db = DatabaseService()
+
+     settings = db.query_by_column("camera_settings", "id", 1, CameraSettingsModel.from_map)
+
+     if settings:
+         # Apply saved settings
+         zoom = settings.zoom
+         brightness = settings.brightness
+         contrast = settings.contrast
+         exposure = settings.exposure
+         white_balance = settings.white_balance
+         frame_rate = settings.frame_rate
+
+         return jsonify({
+             "status": "success",
+             "message": "Loaded saved camera settings.",
+             "settings": settings.to_map()
+         })
+     else:
+         # Apply default values
+         zoom = 1.0
+         brightness = 0
+         contrast = 0
+         exposure = 0.0
+         white_balance = 0.0
+         frame_rate = 20.0
+
+         return jsonify({
+             "status": "default",
+             "message": "No saved settings found. Default settings applied.",
+             "settings": {
+                 "zoom": zoom,
+                 "brightness": brightness,
+                 "contrast": contrast,
+                 "exposure": exposure,
+                 "whiteBalance": white_balance,
+                 "frameRate": frame_rate
+             }
+         })
+
+ @app.route('/reset_settings', methods=['POST'])
+ def reset_camera_settings():
+     global zoom, brightness, contrast, exposure, white_balance, frame_rate
+     conn = db.get_connection()
+     cursor = conn.cursor()
+     cursor.execute("DELETE FROM camera_settings")
+     conn.commit()
+     conn.close()
+     return jsonify({
+         "status": "success",
+         "message": "Camera settings reset to default."
+     })

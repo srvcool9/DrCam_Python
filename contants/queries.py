@@ -60,6 +60,20 @@ class Queries:
         );
     '''
 
+    CAMERA_SETTINGS= '''
+        CREATE TABLE IF NOT EXISTS camera_settings (
+            id INTEGER PRIMARY KEY,
+            zoom REAL,
+            brightness INTEGER,
+            contrast INTEGER,
+            exposure REAL,
+            white_balance REAL,
+            frame_rate REAL
+);
+
+       
+    '''
+
     GET_GRID_DATA = '''
     SELECT 
     p.patientId,
