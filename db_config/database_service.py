@@ -154,6 +154,19 @@ class DatabaseService:
         conn.close()
         return results
 
+    def custom_query_v1(self, query, args=[]):
+        conn = self.get_connection()
+        cursor = conn.execute(query, args)
+        row = cursor.fetchone()
+        conn.close()
+
+        if row is None:
+            return 0
+
+        row_dict = dict(row)
+        val = list(row_dict.values())[0]
+        return val if val is not None else 0
+
     def get_single_int(self, query, args=[]):
         conn = self.get_connection()
         cursor = conn.execute(query, args)

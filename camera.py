@@ -58,6 +58,7 @@ prefilled_videos_list=[]
 
 def register_camera(app):
  def initialize_camera():
+        import time
         global cam, exposure, white_balance, zoom, brightness, contrast, frame_rate
         # Initialize to None in case no camera is found or initialization fails
         cam = None
@@ -107,17 +108,20 @@ def register_camera(app):
 
         setting = load_camera_settings()
         if setting:
-            zoom = setting.zoom
-            brightness = setting.brightness
-            contrast = setting.contrast
-            exposure = setting.exposure
-            white_balance = setting.white_balance
-            frame_rate = setting.framerate
+            zoom = setting.get('zoom')
+            brightness = setting.get('brightness')
+            contrast = setting.get('contrast')
+            exposure = setting.get('exposure')
+            white_balance = setting.get('white_balance')
+            frame_rate = setting.get('framerate')
 
             with lock:
                 if cam:
-                    cam.set(cv2.CAP_PROP_EXPOSURE, exposure)
-                    cam.set(cv2.CAP_PROP_WHITE_BALANCE_BLUE_U, white_balance)
+                    time.sleep(0.5)
+                    exposure = cam.get(cv2.CAP_PROP_EXPOSURE)
+                    white_balance = cam.get(cv2.CAP_PROP_WHITE_BALANCE_BLUE_U)
+                    # cam.set(cv2.CAP_PROP_EXPOSURE, exposure)
+                    # cam.set(cv2.CAP_PROP_WHITE_BALANCE_BLUE_U, white_balance)
         else:
             # If no saved settings, use defaults
             zoom = 1.0
@@ -179,7 +183,24 @@ def register_camera(app):
     initialize_camera()
     profile = db.query_by_column("doctor_profile", "id", 1, ProfileModel.from_map)
     agency_name = profile.agency_name if profile and profile.agency_name else 'Mex Enterprise'
-    return render_template('camera.html', agency_name=agency_name,images=images_list)
+    data = load_camera_settings()
+    if data:
+        setting = data
+    else:
+        setting = {
+            'zoom': 1.0,
+            'brightness': 0,
+            'contrast': 0,
+            'exposure': 0,
+            'white_balance': 4500,
+            'framerate': 20.0
+        }
+
+    return render_template('camera.html', agency_name=agency_name,images=images_list, zoom=setting.get('zoom'),
+        brightness=setting.get('brightness'),
+        contrast=setting.get('contrast'),
+        exposure=setting.get('exposure'),
+        white_balance=setting.get('white_balance'))
 
  @app.route('/video_feed')
  def video_feed():
@@ -350,7 +371,9 @@ def register_camera(app):
      data = request.get_json()
      image_data = data.get('image_data')
      original_filename = data.get('original_filename')
-
+     jpg_index = original_filename.lower().find('.jpg')
+     if jpg_index != -1:
+         original_filename = original_filename[:jpg_index + 4]
      if not image_data or not original_filename:
          return jsonify({'status': 'fail', 'reason': 'missing_data'}), 400
 
@@ -697,7 +720,6 @@ def register_camera(app):
 
      return jsonify({"status": "success", "message": "Camera settings saved"})
 
-
  def load_camera_settings():
      global zoom, brightness, contrast, exposure, white_balance, frame_rate
      db = DatabaseService()
@@ -713,11 +735,7 @@ def register_camera(app):
          white_balance = settings.white_balance
          frame_rate = settings.frame_rate
 
-         return jsonify({
-             "status": "success",
-             "message": "Loaded saved camera settings.",
-             "settings": settings.to_map()
-         })
+         return settings.to_map()  # ✅ Return dict instead of jsonify
      else:
          # Apply default values
          zoom = 1.0
@@ -727,18 +745,14 @@ def register_camera(app):
          white_balance = 0.0
          frame_rate = 20.0
 
-         return jsonify({
-             "status": "default",
-             "message": "No saved settings found. Default settings applied.",
-             "settings": {
-                 "zoom": zoom,
-                 "brightness": brightness,
-                 "contrast": contrast,
-                 "exposure": exposure,
-                 "whiteBalance": white_balance,
-                 "frameRate": frame_rate
-             }
-         })
+         return {
+             "zoom": zoom,
+             "brightness": brightness,
+             "contrast": contrast,
+             "exposure": exposure,
+             "white_balance": white_balance,
+             "frame_rate": frame_rate
+         }
 
  @app.route('/reset_settings', methods=['POST'])
  def reset_camera_settings():

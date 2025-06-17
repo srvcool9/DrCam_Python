@@ -113,3 +113,36 @@ GROUP BY p.patientId, p.appointmentId, p.patientName;
     CHECK_IF_IMAGE_EXISTS ='''
         SELECT imageBase64 FROM patient_images WHERE patientId = ? and imageBase64 = ? 
     '''
+
+    
+    GET_TOTAL_REGISTERED_PATIENTS = '''
+       select count(p.patientId) as TotalRegistered
+       from patients p 
+      ''';
+
+
+    GET_PATIENTS_COUNT_VISITED_CURRENT_WEEK = '''
+       select count(distinct p.patientId) as VisitedThisWeek
+       from patients p 
+       inner join patient_history ph 
+       on ph.patientId =p.patientId 
+       where ((strftime('%d', 'now') - 1) / 7 + 1) = ((strftime('%d', ph.appointmentDate) - 1) / 7 + 1)
+      ''';
+
+
+    GET_PATIENTS_COUNT_VISITED_CURRENT_MONTH = '''
+       select count(distinct p.patientId) as VisitedThisMonth
+       from patients p 
+       inner join patient_history ph 
+       on ph.patientId =p.patientId 
+       where strftime('%m', 'now') = strftime('%m', ph.appointmentDate)
+      ''';
+
+
+    GET_PATIENTS_COUNT_VISITED_CURRENT_YEAR = '''
+       select count(distinct p.patientId) as VisitedThisYear
+       from patients p 
+       inner join patient_history ph 
+       on ph.patientId =p.patientId 
+       where strftime('%Y', 'now') = strftime('%Y', ph.appointmentDate)
+      ''';

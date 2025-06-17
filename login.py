@@ -25,7 +25,7 @@ def register_login_routes(app):
         return redirect(url_for('dashboard'))
     else:
         profile= db.query_by_column("doctor_profile","email",email,ProfileModel.from_map)
-        if(profile and profile.get('password')==password):
+        if(profile and profile.password==password):
             print("Logged in success")
             return redirect(url_for('dashboard'))
         else:
