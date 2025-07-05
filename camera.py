@@ -78,9 +78,10 @@ def register_camera(app):
 
         # Prioritize "H1600 Cam"
         for name in devices:
-            if "H1600 Cam" in name:
-                target_device_name = name
-                break
+          if "H1600 Cam" in name:
+            target_device_name = name
+            break
+
         # If H1600 cam is not found, check for "VMware Virtual USB Video Device"
         if target_device_name is None:
             for name in devices:
@@ -118,10 +119,10 @@ def register_camera(app):
             with lock:
                 if cam:
                     time.sleep(0.5)
-                    exposure = cam.get(cv2.CAP_PROP_EXPOSURE)
-                    white_balance = cam.get(cv2.CAP_PROP_WHITE_BALANCE_BLUE_U)
-                    # cam.set(cv2.CAP_PROP_EXPOSURE, exposure)
-                    # cam.set(cv2.CAP_PROP_WHITE_BALANCE_BLUE_U, white_balance)
+                    # exposure = cam.get(cv2.CAP_PROP_EXPOSURE)
+                    # white_balance = cam.get(cv2.CAP_PROP_WHITE_BALANCE_BLUE_U)
+                    cam.set(cv2.CAP_PROP_EXPOSURE, exposure)
+                    cam.set(cv2.CAP_PROP_WHITE_BALANCE_BLUE_U, white_balance)
         else:
             # If no saved settings, use defaults
             zoom = 1.0
@@ -227,10 +228,10 @@ def register_camera(app):
  @app.route('/set_exposure', methods=['POST'])
  def set_exposure():
      global exposure, cam
-     #exposure = float(request.form['exposure'])
-     # with lock:
-     #     if cam and cam.isOpened():
-     #         cam.set(cv2.CAP_PROP_EXPOSURE, exposure)
+     exposure = float(request.form['exposure'])
+     with lock:
+         if cam and cam.isOpened():
+             cam.set(cv2.CAP_PROP_EXPOSURE, exposure)
      return ('', 204)
 
  @app.route('/set_white_balance', methods=['POST'])
@@ -277,7 +278,7 @@ def register_camera(app):
              os.makedirs(path, exist_ok=True)
              out = cv2.VideoWriter(full_path, fourcc, 20.0, (width, height))
              recording = True
-             print(f"✅ Started recording: {full_path}")
+             print(f" Started recording: {full_path}")
      return ('', 204)
 
  @app.route('/stop_recording', methods=['POST'])
@@ -288,7 +289,7 @@ def register_camera(app):
          if out:
              out.release()
              out = None
-             print("🛑 Recording stopped.")
+             print(" Recording stopped.")
 
          # Convert last recorded video to browser-compatible format
          if videos_path_list:
@@ -303,9 +304,9 @@ def register_camera(app):
                      preset='ultrafast',
                      crf=23
                  ).run(overwrite_output=True)
-                 print(f"✅ Converted video saved to: {converted_path}")
+                 print(f" Converted video saved to: {converted_path}")
              except Exception as e:
-                 print(f"❌ FFmpeg conversion failed: {e}")
+                 print(f"FFmpeg conversion failed: {e}")
 
      return ('', 204)
 

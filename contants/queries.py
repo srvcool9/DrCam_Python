@@ -146,3 +146,21 @@ GROUP BY p.patientId, p.appointmentId, p.patientName;
        on ph.patientId =p.patientId 
        where strftime('%Y', 'now') = strftime('%Y', ph.appointmentDate)
       ''';
+
+    GET_FREQUENTLY_VISIT_PATIENT= '''
+    SELECT 
+    COUNT(*) AS frequent_patient_count
+FROM (
+    SELECT 
+        ph.patientId
+    FROM 
+        patient_history ph
+    WHERE 
+        strftime('%Y-%m', ph.appointmentDate) = strftime('%Y-%m', 'now')
+    GROUP BY 
+        ph.patientId
+    HAVING 
+        COUNT(ph.id) >= 2
+);
+
+    '''

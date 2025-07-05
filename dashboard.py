@@ -22,12 +22,14 @@ def register_dashboard_route(app):
     patient_visited_this_week_stats=db.custom_query_v1(Queries.GET_PATIENTS_COUNT_VISITED_CURRENT_WEEK)
     patient_visited_this_month_stats=db.custom_query_v1(Queries.GET_PATIENTS_COUNT_VISITED_CURRENT_MONTH)
     patient_visited_this_year_stats=db.custom_query_v1(Queries.GET_PATIENTS_COUNT_VISITED_CURRENT_YEAR)
+    patient_visited_frequently_stats = db.custom_query_v1(Queries.GET_FREQUENTLY_VISIT_PATIENT)
+
     stats = {
         "total_patients": total_registered_stats,
         "week_visits": patient_visited_this_week_stats,
         "month_visits": patient_visited_this_month_stats,
         "year_visits": patient_visited_this_year_stats,
-        "frequent_patients": 0
+        "frequent_patients": patient_visited_frequently_stats
     }
     return render_template("dashboard.html", stats=stats,agency_name=agency_name)
 

@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <title>Camera | Mex Technologies</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <style>
+    <!-- Font Awesome CDN -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <style>
     body {
         font-family: Arial, sans-serif;
         margin: 0;
@@ -18,6 +21,7 @@
         padding: 1rem 2rem;
         background-color: #f8f8f8;
         border-bottom: 1px solid #ccc;
+        flex-wrap: wrap;
     }
 
     .brand strong {
@@ -35,6 +39,7 @@
     .user-actions {
         display: flex;
         align-items: center;
+        margin-top: 0.5rem;
     }
 
     .logout-btn {
@@ -50,23 +55,29 @@
     /* Layout */
     .container {
         display: flex;
+        flex-wrap: wrap;
         justify-content: space-between;
         padding: 2rem;
+        gap: 1rem;
+    }
+
+    .form-section,
+    .camera-section,
+    .image-section {
+        flex: 1 1 300px;
+        max-width: 100%;
     }
 
     .form-section {
-        width: 20%;
-        margin-right: 2rem;
+        margin-right: 1rem;
     }
 
     .camera-section {
-        width: 50%;
         text-align: center;
     }
 
     .image-section {
-        width: 19%;
-        margin-left: 19px;
+        margin-left: 0;
     }
 
     /* Inputs */
@@ -78,7 +89,7 @@
         padding: 0.5rem;
         border: 1px solid #ccc;
         border-radius: 16px;
-        text-align : center;
+        text-align: center;
     }
 
     /* Tabs */
@@ -113,11 +124,10 @@
     /* Image Grid */
     .image-grid {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(4, 1fr); /* Exactly 4 items per row */
         gap: 10px;
-        margin-top: 7rem;
-        margin-left: -50rem;
-        padding: 4px 0rem;
+        margin-top: 4rem;
+        padding: 4px 0;
     }
 
     .image-grid img {
@@ -126,6 +136,7 @@
         cursor: pointer;
         border-radius: 4px;
         border: 1px solid #ccc;
+        object-fit: cover;
     }
 
     .image-grid .image-item {
@@ -133,10 +144,12 @@
         text-align: center;
     }
 
-    .image-item .date {
+    .image-item .date,
+    .image-item .filename {
         font-size: 0.8rem;
         color: #555;
         margin-top: 0.5rem;
+        word-break: break-all;
     }
 
     /* Modal */
@@ -161,18 +174,49 @@
         background: #fff;
         padding: 20px;
         border-radius: 8px;
-        max-width: 90%;
-        max-height: 90%;
+        max-width: 100%;
+        max-height: 95vh;
         overflow: auto;
         position: relative;
-        margin-top: 43px;
-        margin-left: 40px;
+        margin: auto;
+        width: 90vw;
+        box-sizing: border-box;
+        margin-top: 30px;
     }
 
     .modal-content img,
     .modal-content video {
-        max-width: 100%;
+        width: 100%;
+        height: auto;
         max-height: 80vh;
+        display: block;
+        object-fit: contain;
+    }
+
+    #drawCanvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: none;
+    z-index: 10;
+    pointer-events: auto;
+    border: 1px dashed red; /* Optional: visual debug aid */
+}
+
+
+    #penToggleBtn {
+        position: absolute;
+        top: 4px;
+        right: 10px;
+        z-index: 20;
+        padding: 0.4rem 0.8rem;
+        font-size: 1rem;
+        border-radius: 6px;
+        border: none;
+        color: #fff;
+        cursor: pointer;
+        width: 75px;
+        background-color: #e74c3c;
     }
 
     .close-btn {
@@ -199,7 +243,58 @@
     .blink {
         animation: blink 1s infinite;
     }
-   </style>
+
+    /* Media Queries */
+    @media (max-width: 1092px) {
+        .navbar {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .nav-links {
+            margin-top: 0.5rem;
+        }
+
+        .modal-content {
+            padding: 10px;
+            width: 95vw;
+        }
+
+        #penToggleBtn {
+            font-size: 0.9rem;
+            padding: 0.3rem 0.6rem;
+        }
+
+        .image-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .image-grid img {
+            height: 150px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .image-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .image-grid img {
+            height: 140px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .image-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .image-grid img {
+            height: 130px;
+        }
+    }
+</style>
+
 
 </head>
 <body>
@@ -242,34 +337,51 @@
     <!-- Camera Section -->
     <section class="camera-section">
         <h1>Live Camera</h1>
-        <div style="position: relative; display: inline-block;">
-            <img src="{{ url_for('video_feed') }}" width="750" height="480">
-            <div id="recordingStatus"
-                 style="display: none; position: absolute; top: 10px; left: 10px;
-                        background: rgba(0, 0, 0, 0.6); color: white;
-                        padding: 5px 10px; border-radius: 5px; font-size: 16px;">
-                <span id="recordingDot" style="color: red; font-weight: bold;">●</span>
-                <span id="recordingTimer" style="margin-left: 8px;">00:00</span>
-            </div>
-        </div>
+        <div id="cameraWrapper" style="width: 750px; height: 480px; position: relative; overflow: hidden; margin: auto;">
+    <img id="cameraFeed"
+         src="{{ url_for('video_feed') }}"
+         style="position: absolute;
+                top: 50%; left: 50%;
+                transform: translate(-50%, -50%) rotate(0deg) scaleX(1);
+                transform-origin: center center;
+                transition: transform 0.3s ease;
+                max-width: none; width: auto; height: 100%;">
+         </div>
 
         <br><br>
 
-        <button id="captureButton"
-                style="width:150px; background-color: #28a745;"
-                onclick="captureImage()">Capture</button>
+       <button style="width:129px; background-color: #007BFF; color: white;"
+        onclick="flipCamera()">
+    <i class="fas fa-arrows-alt-h"></i> Flip
+</button>
 
-        <div id="loadingIcon" style="display:none;">
-            <img src="static/loading.gif" alt="Loading..." />
-        </div>
+<button style="width:150px; background-color: #007BFF; color: white;"
+        onclick="rotateCamera()">
+    <i class="fas fa-sync-alt"></i> Rotate
+</button>
 
-        <button id="startRecordingBtn"
-                style="width:150px; background-color: #007BFF;"
-                onclick="startRecording()">Start Recording</button>
+<button id="captureButton"
+        style="width:150px; background-color: #28a745; color: white;"
+        onclick="captureImage()">
+    <i class="fas fa-camera"></i> Capture
+</button>
 
-        <button id="stopRecordingBtn"
-                style="width:150px; background-color: #DC3545;"
-                onclick="stopRecording()">Stop Recording</button>
+<div id="loadingIcon" style="display:none;">
+    <img src="static/loading.gif" alt="Loading..." />
+</div>
+
+<button id="startRecordingBtn"
+        style="width:150px; background-color: #007BFF; color: white;"
+        onclick="startRecording()">
+    <i class="fas fa-circle"></i> Start
+</button>
+
+<button id="stopRecordingBtn"
+        style="width:150px; background-color: #DC3545; color: white;"
+        onclick="stopRecording()">
+    <i class="fas fa-stop"></i> Stop
+</button>
+
     </section>
 
     <!-- Image and Video Grid with Sliders -->
@@ -298,7 +410,26 @@
             </div>
             </div>
 
-        <div id="captured-images" class="image-grid">
+
+    </section>
+</main>
+
+<!-- Modal for Preview -->
+<div id="imageModal" class="modal">
+    <span class="close-btn" onclick="closeModal()">&times;</span>
+    <div class="modal-content">
+        <img id="modalImage" src="" alt="Preview" style="display: none;">
+        <video id="videoPlayer" controls style="display: none;">
+            <source id="modalVideoSource" src="" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+        <canvas id="drawCanvas"></canvas>
+        <button id="penToggleBtn" onclick="toggleDrawing()">Red🖊️</button>
+    </div>
+</div>
+
+
+ <div id="captured-images" class="image-grid">
             {% for file in files %}
                 <div class="image-item">
                     {% if file.endswith('.jpg') or file.endswith('.jpeg') or file.endswith('.png') %}
@@ -318,31 +449,25 @@
         <div class="button-container" id="pdfButtonContainer"  aria-live="polite">
            <button type="button" id="generatePdfButton">Generate PDF</button>
         </div>
-    </section>
-</main>
-
-<!-- Modal for Preview -->
-<div id="imageModal" class="modal">
-    <span class="close-btn" onclick="closeModal()">&times;</span>
-    <div class="modal-content" style="position: relative;">
-        <img id="modalImage" src="" alt="Preview" style="display:none; width:100%;">
-        <video id="videoPlayer" width="640" height="360" controls style="display:none;">
-            <source id="modalVideoSource" src="" type="video/mp4">
-            Your browser does not support the video tag.
-        </video>
-        <canvas id="drawCanvas" style="position:absolute; top:0; left:0; display:none; z-index:10;"></canvas>
-        <button id="penToggleBtn"
-                onclick="toggleDrawing()"
-                style="position:absolute; top:10px; right:10px; z-index:20;">
-            Red🖊️
-        </button>
-    </div>
-</div>
-
-
 <script>
+let isFlipped = false;
+    let rotationAngle = 0;
 
+    function updateTransform() {
+        const camera = document.getElementById('cameraFeed');
+        const flip = isFlipped ? "scaleX(-1)" : "scaleX(1)";
+        camera.style.transform = `translate(-50%, -50%) rotate(${rotationAngle}deg) ${flip}`;
+    }
 
+    function flipCamera() {
+        isFlipped = !isFlipped;
+        updateTransform();
+    }
+
+    function rotateCamera() {
+        rotationAngle = (rotationAngle + 90) % 360;
+        updateTransform();
+    }
 // ===== Utility Functions =====
 
 function getQueryParam(name) {
