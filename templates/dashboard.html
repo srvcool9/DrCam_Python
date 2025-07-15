@@ -4,29 +4,104 @@
     <meta charset="UTF-8">
     <title>Dashboard | Mex Technologies</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body>
-    <nav class="navbar">
-        <div class="brand">
-            <strong>{{agency_name}}</strong>
-        </div>
-        <div class="nav-links">
-            <a href="/dashboard" class="active">Home</a>
-            <a href="/camera">Camera</a>
-            <a href="/patient_history">Patient History</a>
-            <a href="/setting">Settings</a>
-        </div>
-          <div class="user-actions">
-        <button class="logout-btn" onclick="window.location.href = '/'">Logout</button>
+  <nav class="flex justify-between items-center px-6 py-4 bg-white shadow-md">
+  <!-- Branding / Logo -->
+  <div class="flex items-center space-x-3">
+    <div class="bg-red-800 text-white rounded-full w-10 h-10 flex items-center justify-center text-xl font-semibold">
+      {{ agency_name[0] }}
     </div>
-    </nav>
+    <h1 class="text-2xl font-extrabold text-red-800 tracking-tight">
+      {{ agency_name }}
+    </h1>
+  </div>
 
-    <main class="dashboard" style="height: 502px;" >
-        <div class="card">{{ stats.total_patients }}<br><span>Total patients registered</span></div>
-        <div class="card">{{ stats.week_visits }}<br><span>Patients visited this week</span></div>
-        <div class="card">{{ stats.month_visits }}<br><span>Patients visited this month</span></div>
-        <div class="card">{{ stats.year_visits }}<br><span>Patients visited this year</span></div>
-        <div class="card">{{ stats.frequent_patients }}<br><span>Frequently visiting patients</span></div>
-    </main>
+  <!-- Navigation Links -->
+  <div class="flex space-x-6 text-gray-700 font-medium">
+    <a href="/dashboard" class="hover:text-red-800 transition">Home</a>
+    <a href="/patient_registration" class="hover:text-red-800 transition">Patient Registration</a>
+    <a href="/patient_history" class="hover:text-red-800 transition">Patient History</a>
+    <a href="/setting" class="hover:text-red-800 transition">Settings</a>
+  </div>
+
+  <!-- Logout Button -->
+  <div>
+    <button
+      onclick="window.location.href = '/'"
+      class="bg-red-800 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded-lg shadow-sm transition duration-300">
+      Logout
+    </button>
+  </div>
+</nav>
+
+<!-- Dashboard Cards -->
+<main class="w-full h-[650px] p-4 md:p-6 bg-red-100 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-2 gap-6 mx-auto ">
+    <!-- Total Patients -->
+    <div class="min-h-50 bg-white rounded-xl shadow hover:shadow-lg transition transform hover:scale-105 p-6 text-center">
+        <div class="flex justify-center mb-3 text-blue-600">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="1.5"
+                 viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M15 21H9a3 3 0 01-3-3v-2a3 3 0 013-3h6a3 3 0 013 3v2a3 3 0 01-3 3z"/>
+                <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M9 7a3 3 0 116 0 3 3 0 01-6 0z"/>
+            </svg>
+        </div>
+        <p class="text-3xl font-bold text-green-800">{{ stats.total_patients }}</p>
+        <p class="text-sm text-green-800 mt-1">Total patients registered</p>
+    </div>
+
+    <!-- This Week -->
+    <div class="min-h-50 bg-white rounded-xl shadow hover:shadow-lg transition transform hover:scale-105 p-6 text-center">
+        <div class="flex justify-center mb-3 text-green-600">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="1.5"
+                 viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M12 8c.638-2.305 3-4 6-4 3.31 0 6 2.69 6 6 0 5-6 10-12 10S0 15 0 10c0-3.31 2.69-6 6-6 3 0 5.362 1.695 6 4z"/>
+            </svg>
+        </div>
+        <p class="text-3xl font-bold text-green-800">{{ stats.week_visits }}</p>
+        <p class="text-sm text-green-800 mt-1">Patients visited this week</p>
+    </div>
+
+    <!-- This Month -->
+    <div class="min-h-50 bg-white rounded-xl shadow hover:shadow-lg transition transform hover:scale-105 p-6 text-center">
+        <div class="flex justify-center mb-3 text-yellow-500">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="1.5"
+                 viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M4 4h16M4 8h16M4 12h16M4 16h16M4 20h16"/>
+            </svg>
+        </div>
+        <p class="text-3xl font-bold text-green-800">{{ stats.month_visits }}</p>
+        <p class="text-sm text-green-800 mt-1">Patients visited this month</p>
+    </div>
+
+    <!-- This Year -->
+    <div class="min-h-50 bg-white rounded-xl shadow hover:shadow-lg transition transform hover:scale-105 p-6 text-center">
+        <div class="flex justify-center mb-3 text-purple-600">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="1.5"
+                 viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M3 3v18h18M3 12h18M9 3v18"/>
+            </svg>
+        </div>
+        <p class="text-3xl font-bold text-green-800">{{ stats.year_visits }}</p>
+        <p class="text-sm  text-green-800 mt-1">Patients visited this year</p>
+    </div>
+
+</main>
+
+
+    <!-- Toggle script for mobile menu -->
+    <script>
+        const toggle = document.getElementById('menu-toggle');
+        const links = document.getElementById('nav-links');
+        toggle.addEventListener('click', () => {
+            links.classList.toggle('hidden');
+        });
+    </script>
 </body>
 </html>

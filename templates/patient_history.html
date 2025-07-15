@@ -3,210 +3,130 @@
 <head>
   <meta charset="UTF-8">
   <title>Patient History</title>
-  <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      margin: 0;
-      background-color: #fff;
-    }
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 1rem 2rem;
-      background-color: white;
-      border-bottom: 1px solid #e0e0e0;
-    }
-    .logo {
-      font-size: 1.8rem;
-      font-weight: bold;
-      color: #4a9bb7;
-    }
-    .logo span {
-      display: block;
-      font-size: 1rem;
-      font-weight: normal;
-      color: #5ba6c3;
-    }
-    nav a {
-      margin: 0 1rem;
-      text-decoration: none;
-      font-weight: bold;
-      color: black;
-    }
-    nav a.active {
-      color: #4a9bb7;
-    }
-    .logout-btn {
-      padding: 0.5rem 1.5rem;
-      background-color: #4a9bb7;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    .container {
-      padding: 2rem;
-    }
-    h1 {
-      font-size: 2rem;
-      margin-bottom: 1rem;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 1rem;
-    }
-    thead {
-      background-color: #5ba6c3;
-      color: white;
-    }
-    th, td {
-      text-align: center;
-      padding: 1rem;
-      border: 1px solid #d8f1f8;
-    }
-    tbody tr:nth-child(even) {
-      background-color: #f6fcfe;
-    }
-    .icon {
-      cursor: pointer;
-    }
-    .navbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: white;
-    padding: -1rem 22rem;
-    border-bottom: 0px solid #ccc;
-}
-
-.brand strong {
-    font-size: 1.5rem;
-    color: #0077a3;
-}
-
-.brand span {
-    font-size: 0.9rem;
-    color: #3399cc;
-}
-
-.nav-links a {
-    margin: 0 1rem;
-    text-decoration: none;
-    font-weight: bold;
-    color: black;
-}
-
-  </style>
-
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body>
+<body class="bg-white font-sans">
 
-  <header>
-    <script>
-function openHistoryModal(dates) {
-  let modal = document.getElementById("historyModal");
-
-  if (!modal) {
-    modal = document.createElement("div");
-    modal.id = "historyModal";
-    modal.style.position = "fixed";
-    modal.style.top = "50%";
-    modal.style.left = "50%";
-    modal.style.transform = "translate(-50%, -50%)";
-    modal.style.backgroundColor = "#fff";
-    modal.style.border = "1px solid #ccc";
-    modal.style.padding = "20px";
-    modal.style.zIndex = "1000";
-    modal.style.maxHeight = "300px";
-    modal.style.overflowY = "auto";
-    modal.style.boxShadow = "0 0 10px rgba(0, 0, 0, 0.2)";
-    modal.style.width = "300px";
-    modal.style.position = "fixed";
-
-    modal.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: center;">
-        <h3 style="margin: 0;color: #0077a3;">Visit History</h3>
-        <span onclick="document.getElementById('historyModal').remove()"
-              style="cursor: pointer; font-size: 20px; font-weight: bold;">&times;</span>
-      </div>
-      <hr>
-      <ul id="historyDatesList" style="margin-top: 10px;"></ul>
-    `;
-
-    document.body.appendChild(modal);
-  }
-
-  const list = modal.querySelector("#historyDatesList");
-  list.innerHTML = "";
-
-  if (Array.isArray(dates) && dates.length) {
-    dates.forEach(date => {
-      const li = document.createElement("li");
-      li.textContent = date;
-      list.appendChild(li);
-    });
-  } else {
-    list.innerHTML = "<li>No visit history found.</li>";
-  }
-}
-</script>
-
- <div class="brand">
-            <strong>{{agency_name}}</strong>
-        </div>
-     <nav class="navbar">
-        <div class="nav-links">
-            <a href="/dashboard" >Home</a>
-            <a href="/camera">Camera</a>
-            <a href="/patient_history" class="active">Patient History</a>
-            <a href="/setting">Settings</a>
-        </div>
-
-    </nav>
-      <div class="user-actions">
-        <button class="logout-btn" onclick="window.location.href = '/'">Logout</button>
+<!-- Synced Navigation Bar -->
+<nav class="flex justify-between items-center px-6 py-4 bg-white shadow-md">
+  <!-- Branding / Logo -->
+  <div class="flex items-center space-x-3">
+    <div class="bg-red-800 text-white rounded-full w-10 h-10 flex items-center justify-center text-xl font-semibold">
+      {{ agency_name[0] }}
     </div>
-  </header>
+    <h1 class="text-2xl font-extrabold text-red-800 tracking-tight">
+      {{ agency_name }}
+    </h1>
+  </div>
 
-  <div class="container">
-    <h1>Patient History</h1>
-    <table>
-      <thead>
+  <!-- Navigation Links -->
+  <div class="flex space-x-6 text-gray-700 font-medium">
+    <a href="/dashboard" class="hover:text-red-800 transition">Home</a>
+    <a href="/patient_registration" class="hover:text-red-800 transition">Patient Registration</a>
+    <a href="/patient_history" class="hover:text-red-800 transition">Patient History</a>
+    <a href="/setting" class="hover:text-red-800 transition">Settings</a>
+  </div>
+
+  <!-- Logout Button -->
+  <div>
+    <button
+      onclick="window.location.href = '/'"
+      class="bg-red-800 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded-lg shadow-sm transition duration-300">
+      Logout
+    </button>
+  </div>
+</nav>
+
+<!-- Patient History Table -->
+<div class="p-6">
+  <h1 class="text-2xl font-bold text-gray-800 mb-4">Patient History</h1>
+  <div class="overflow-x-auto">
+    <table class="w-full border-collapse">
+      <thead class="bg-red-800 text-white">
         <tr>
-          <th>Patient ID</th>
-          <th>Patient name</th>
-          <th>Last visited</th>
-          <th>Visit history</th>
-          <th>Generate PDF</th>
+          <th class="p-3 border">Patient ID</th>
+          <th class="p-3 border">Patient Name</th>
+          <th class="p-3 border">Last Visited</th>
+          <th class="p-3 border">Visit History</th>
+          <th class="p-3 border">Generate PDF</th>
         </tr>
       </thead>
       <tbody>
         {% for dto in dto_list %}
-        <tr>
-          <td>
-          <a href="/camera?patient_id={{ dto.patient_id }}" style="color:#0077a3; text-decoration: underline;">
-          {{ dto.appointment_id }}
-          </a>
+        <tr class="text-center even:bg-red-50">
+          <td class="p-3 border">
+            <a href="/camera?patient_id={{ dto.patient_id }}" class="text-blue-700 underline">
+              {{ dto.appointment_id }}
+            </a>
           </td>
-          <td>{{ dto.patient_name }}</td>
-          <td>{{ dto.last_visited or "N/A" }}</td>
-          <td>
-    <span class="icon" onclick='openHistoryModal({{ dto.visit_dates | tojson | safe }})'>👁️</span>
-  </td>
-          <td><span class="icon" onclick="location.href='/pdf_gen/{{ dto.patient_id }}/{{dto.patient_name}}'">📄</span></td>
+          <td class="p-3 border">{{ dto.patient_name }}</td>
+          <td class="p-3 border">{{ dto.last_visited or "N/A" }}</td>
+          <td class="p-3 border">
+            <span class="cursor-pointer" onclick='openHistoryModal({{ dto.visit_dates | tojson | safe }})'>👁️</span>
+          </td>
+          <td class="p-3 border">
+            <span class="cursor-pointer" onclick="location.href='/pdf_gen/{{ dto.patient_id }}/{{dto.patient_name}}'">📄</span>
+          </td>
         </tr>
         {% endfor %}
 
-        {# Padding rows for UI consistency (if less than 3 rows) #}
         {% for _ in range(3 - dto_list|length) %}
-        <tr><td colspan="5">&nbsp;</td></tr>
+        <tr><td class="p-3 border text-center" colspan="5">&nbsp;</td></tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
+</div>
+
+<!-- Modal Script -->
+<script>
+  function openHistoryModal(dates) {
+    let modal = document.getElementById("historyModal");
+
+    if (!modal) {
+      modal = document.createElement("div");
+      modal.id = "historyModal";
+      modal.style.position = "fixed";
+      modal.style.top = "50%";
+      modal.style.left = "50%";
+      modal.style.transform = "translate(-50%, -50%)";
+      modal.style.backgroundColor = "#fff";
+      modal.style.border = "1px solid #ccc";
+      modal.style.padding = "20px";
+      modal.style.zIndex = "1000";
+      modal.style.maxHeight = "300px";
+      modal.style.overflowY = "auto";
+      modal.style.boxShadow = "0 0 10px rgba(0, 0, 0, 0.2)";
+      modal.style.width = "300px";
+
+      modal.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <h3 style="margin: 0;color: #0077a3;">Visit History</h3>
+          <span onclick="document.getElementById('historyModal').remove()"
+                style="cursor: pointer; font-size: 20px; font-weight: bold;">&times;</span>
+        </div>
+        <hr>
+        <ul id="historyDatesList" style="margin-top: 10px;"></ul>
+      `;
+
+      document.body.appendChild(modal);
+    }
+
+    const list = modal.querySelector("#historyDatesList");
+    list.innerHTML = "";
+
+    if (Array.isArray(dates) && dates.length) {
+      dates.forEach(date => {
+        const li = document.createElement("li");
+        li.textContent = date;
+        list.appendChild(li);
+      });
+    } else {
+      list.innerHTML = "<li>No visit history found.</li>";
+    }
+  }
+</script>
 
 </body>
 </html>

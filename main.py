@@ -11,6 +11,7 @@ from login import register_login_routes
 from dashboard import register_dashboard_route
 from db_config.database_service import DatabaseService
 from patient_history import register_patient_history
+from patient_registration import register_pat_reg_routes
 from pdf_generater import register_pdf_route
 from setting import register_setting
 
@@ -27,6 +28,7 @@ register_camera(app)
 register_patient_history(app)
 register_setting(app)
 register_pdf_route(app)
+register_pat_reg_routes(app)
 
 # Initialize DB
 db = DatabaseService()

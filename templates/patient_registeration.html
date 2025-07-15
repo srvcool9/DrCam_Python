@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Mex Technologies - Patient Registration</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.7.4/lottie.min.js"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="bg-white font-sans">
+
+<!-- Navigation Bar -->
+<nav class="flex justify-between items-center px-6 py-4 bg-white shadow-md">
+  <div class="flex items-center space-x-3">
+    <div class="bg-red-800 text-white rounded-full w-10 h-10 flex items-center justify-center text-xl font-semibold">
+      {{ agency_name[0] }}
+    </div>
+    <h1 class="text-2xl font-extrabold text-red-800 tracking-tight">
+      {{ agency_name }}
+    </h1>
+  </div>
+  <div class="flex space-x-6 text-gray-700 font-medium">
+    <a href="/dashboard" class="hover:text-red-800 transition">Home</a>
+    <a href="/camera" class="hover:text-red-800 transition">Camera</a>
+    <a href="/patient_history" class="hover:text-red-800 transition">Patient History</a>
+    <a href="/setting" class="hover:text-red-800 transition">Settings</a>
+  </div>
+  <div>
+    <button
+      onclick="window.location.href = '/'"
+      class="bg-red-800 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded-lg shadow-sm transition duration-300">
+      Logout
+    </button>
+  </div>
+</nav>
+
+<!-- Registration Section -->
+<section class="max-w-6xl mx-auto mt-10 bg-gray-50 p-8 rounded-xl shadow-md">
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+
+    <!-- Lottie Animation -->
+    <div class="flex justify-center">
+      <div id="lottie-container" style="width: 100%; max-width: 400px; height: 300px;"></div>
+    </div>
+
+    <!-- Form -->
+    <div>
+      <h2 class="text-2xl font-bold text-blue-800 mb-6">Patient Registration</h2>
+      <form id="patientForm" class="grid grid-cols-1 gap-4">
+        <input type="text" name="id" placeholder="Patient ID" class="p-3 rounded-md bg-white border border-gray-300">
+        <input type="text" name="patient_name" placeholder="Patient Name" class="p-3 rounded-md bg-white border border-gray-300">
+        <select name="gender" class="p-3 rounded-md bg-white border border-gray-300">
+          <option value="">Gender</option>
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+          <option value="Transgender">Transgender</option>
+        </select>
+        <input type="date" name="dob" placeholder="Date of Birth" class="p-3 rounded-md bg-white border border-gray-300">
+        <input type="text" name="phone" placeholder="Phone No." class="p-3 rounded-md bg-white border border-gray-300">
+        <input type="text" name="address" placeholder="Address" class="p-3 rounded-md bg-white border border-gray-300">
+        <button type="submit" class="bg-blue-800 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg w-full">
+          Save
+        </button>
+      </form>
+    </div>
+
+  </div>
+</section>
+
+<!-- Submit Handler -->
+<script>
+document.getElementById("patientForm").addEventListener("submit", async function(e) {
+  e.preventDefault();
+  const form = e.target;
+  const formData = new FormData(form);
+  try {
+    const response = await fetch("/save_information", {
+      method: "POST",
+      body: formData
+    });
+
+    const result = await response.json();
+
+    if (result.status === "saved" || result.status === "updated") {
+      console.log("✅ Profile " + result.status + " successfully!");
+    } else {
+      console.log("❌ Something went wrong!");
+    }
+  } catch (err) {
+    console.error("Error submitting form:", err);
+  }
+});
+</script>
+
+<!-- Lottie Load -->
+<script>
+lottie.loadAnimation({
+  container: document.getElementById('lottie-container'),
+  renderer: 'svg',
+  loop: true,
+  autoplay: true,
+  path: '/static/Optometrists.json'  // Replace with your Lottie JSON file path
+});
+</script>
+
+</body>
+</html>
