@@ -1,12 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Camera | Mex Technologies</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <!-- Font Awesome CDN -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-
+  <meta charset="UTF-8">
+  <title>Mex Technologies - Patient Registration</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.7.4/lottie.min.js"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <style>
     body {
         font-family: Arial, sans-serif;
@@ -299,156 +298,153 @@
 </head>
 <body>
 
-<nav class="navbar">
-    <div class="brand" style="color: #3399cc;">
-        <strong>{{agency_name}}</strong>
+<!-- Navigation Bar -->
+<nav class="flex justify-between items-center px-6 py-4 bg-white shadow-md">
+  <div class="flex items-center space-x-3">
+    <div class="bg-red-800 text-white rounded-full w-10 h-10 flex items-center justify-center text-xl font-semibold">
+      {{ agency_name[0] }}
     </div>
-    <div class="nav-links">
-        <a href="/dashboard">Home</a>
-        <a href="/camera" class="active">Camera</a>
-        <a href="/patient_history">Patient History</a>
-        <a href="/setting">Settings</a>
-    </div>
-    <div class="user-actions">
-        <button class="logout-btn" onclick="window.location.href = '/'">Logout</button>
-    </div>
+    <h1 class="text-2xl font-extrabold text-red-800 tracking-tight">
+      {{ agency_name }}
+    </h1>
+  </div>
+  <div class="flex space-x-6 text-gray-700 font-medium">
+    <a href="/dashboard" class="hover:text-red-800 transition">Home</a>
+    <a href="/patient_registration" class="hover:text-red-800 transition">Patient Registration</a>
+    <a href="/patient_history" class="hover:text-red-800 transition">Patient History</a>
+    <a href="/setting" class="hover:text-red-800 transition">Settings</a>
+  </div>
+  <div>
+    <button
+      onclick="window.location.href = '/'"
+      class="bg-red-800 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded-lg shadow-sm transition duration-300">
+      Logout
+    </button>
+  </div>
 </nav>
 
-<main class="container">
-    <!-- Patient Registration Form -->
-    <section class="form-section">
-        <h2 style="color:#0077a3;">Patient Registration</h2>
-        <form id="patientForm">
-            <input type="text" name="id" placeholder="Patient ID">
-            <input type="text" name="patient_name" placeholder="Patient Name">
-            <select style=" width: 307px;" name="gender">
-                <option value="">Gender</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Transgender">Transgender</option>
-            </select>
-            <input type="date" name="dob" placeholder="Date of Birth">
-            <input type="text" name="phone" placeholder="Phone No.">
-            <input type="text" name="address" placeholder="Address">
-            <button style="background-color:#0077a3;" type="submit">Save</button>
-        </form>
-    </section>
-
-    <!-- Camera Section -->
-    <section class="camera-section">
-        <h1>Live Camera</h1>
-        <div id="cameraWrapper" style="width: 750px; height: 480px; position: relative; overflow: hidden; margin: auto;">
-    <img id="cameraFeed"
-         src="{{ url_for('video_feed') }}"
-         style="position: absolute;
-                top: 50%; left: 50%;
-                transform: translate(-50%, -50%) rotate(0deg) scaleX(1);
-                transform-origin: center center;
-                transition: transform 0.3s ease;
-                max-width: none; width: auto; height: 100%;">
-         </div>
-
-        <br><br>
-
-       <button style="width:129px; background-color: #007BFF; color: white;"
-        onclick="flipCamera()">
-    <i class="fas fa-arrows-alt-h"></i> Flip
-</button>
-
-<button style="width:150px; background-color: #007BFF; color: white;"
-        onclick="rotateCamera()">
-    <i class="fas fa-sync-alt"></i> Rotate
-</button>
-
-<button id="captureButton"
-        style="width:150px; background-color: #28a745; color: white;"
-        onclick="captureImage()">
-    <i class="fas fa-camera"></i> Capture
-</button>
-
-<div id="loadingIcon" style="display:none;">
-    <img src="static/loading.gif" alt="Loading..." />
+<!-- Patient Header Bar -->
+<div id="patientHeaderBar" class="bg-gray-800 text-white px-6 py-3 flex justify-between items-center rounded-md shadow mb-4 hidden">
+  <div class="flex flex-col">
+    <div id="headerPatientName" class="text-lg font-semibold">Name Here</div>
+    <div class="text-sm text-gray-300 flex items-center gap-4">
+      <div id="headerDobAge">📅 DOB (Age)</div>
+      <div id="headerPatientId">🆔 ID</div>
+    </div>
+  </div>
+  <div id="headerAgeOnly" class="text-sm text-gray-300">
+    Age years
+  </div>
 </div>
 
-<button id="startRecordingBtn"
-        style="width:150px; background-color: #007BFF; color: white;"
-        onclick="startRecording()">
-    <i class="fas fa-circle"></i> Start
-</button>
+<main class="container">
+  <!-- Image and Video Grid with Sliders -->
+  <section class="image-section">
+    <h3>Recent Images</h3>
 
-<button id="stopRecordingBtn"
-        style="width:150px; background-color: #DC3545; color: white;"
-        onclick="stopRecording()">
-    <i class="fas fa-stop"></i> Stop
-</button>
+    <div class="sliders">
+      <label for="zoom">Zoom</label>
+      <input type="range" id="zoom" min="1" max="2" step="0.1" value="{{ zoom }}" onchange="setZoom(this.value)">
 
-    </section>
+      <label for="brightness">Brightness</label>
+      <input type="range" id="brightness" min="-100" max="100" step="1" value="{{ brightness }}" onchange="setBrightness(this.value)">
 
-    <!-- Image and Video Grid with Sliders -->
-    <section class="image-section">
-        <h3>Recent Images</h3>
+      <label for="contrast">Contrast</label>
+      <input type="range" id="contrast" min="-100" max="100" step="1" value="{{ contrast }}" onchange="setContrast(this.value)">
 
-        <div class="sliders">
-            <label for="zoom">Zoom</label>
-<input type="range" id="zoom" min="1" max="2" step="0.1" value="{{ zoom }}" onchange="setZoom(this.value)">
+      <label for="exposure">Exposure</label>
+      <input type="range" id="exposure" min="-13" max="0" step="1" value="{{ exposure }}" onchange="setExposure(this.value)">
 
-<label for="brightness">Brightness</label>
-<input type="range" id="brightness" min="-100" max="100" step="1" value="{{ brightness }}" onchange="setBrightness(this.value)">
+      <label for="white_balance">White Balance</label>
+      <input type="range" id="white_balance" min="2800" max="6500" step="100" value="{{ white_balance }}" onchange="setWhiteBalance(this.value)">
 
-<label for="contrast">Contrast</label>
-<input type="range" id="contrast" min="-100" max="100" step="1" value="{{ contrast }}" onchange="setContrast(this.value)">
+      <div style="gap: 10px; display: flex;">
+        <button class="btn" id="reset_button" aria-label="Reset settings button" style="background: #ef4444;">Reset</button>
+        <button class="btn" id="save_setting" aria-label="Save settings button" style="background: #0077a3;">Save Setting</button>
+      </div>
+    </div>
+  </section>
 
-<label for="exposure">Exposure</label>
-<input type="range" id="exposure" min="-13" max="0" step="1" value="{{ exposure }}" onchange="setExposure(this.value)">
+  <!-- Camera Section -->
+  <section class="camera-section">
+    <h1>Live Camera</h1>
 
-<label for="white_balance">White Balance</label>
-<input type="range" id="white_balance" min="2800" max="6500" step="100" value="{{ white_balance }}" onchange="setWhiteBalance(this.value)">
+    <div id="cameraWrapper" style="width: 750px; height: 480px; position: relative; overflow: hidden; margin: auto;">
+      <img id="cameraFeed"
+           src="{{ url_for('video_feed') }}"
+           style="position: absolute;
+                  top: 50%; left: 50%;
+                  transform: translate(-50%, -50%) rotate(0deg) scaleX(1);
+                  transform-origin: center center;
+                  transition: transform 0.3s ease;
+                  max-width: none; width: auto; height: 100%;">
+    </div>
 
-            <div style="gap: 10px;display: flex;">
-            <button class="btn" id="reset_button" aria-label="Reset settings button" style="background: #ef4444;">Reset</button>
-            <button class="btn" id="save_setting" aria-label="Save settings button" style="background: #0077a3;">Save Setting</button>
-            </div>
-            </div>
+    <br><br>
 
+    <button style="width:129px; background-color: #007BFF; color: white;" onclick="flipCamera()">
+      <i class="fas fa-arrows-alt-h"></i> Flip
+    </button>
 
-    </section>
+    <button style="width:150px; background-color: #007BFF; color: white;" onclick="rotateCamera()">
+      <i class="fas fa-sync-alt"></i> Rotate
+    </button>
+
+    <button id="captureButton" style="width:150px; background-color: #28a745; color: white;" onclick="captureImage()">
+      <i class="fas fa-camera"></i> Capture
+    </button>
+
+    <div id="loadingIcon" style="display:none;">
+      <img src="static/loading.gif" alt="Loading..." />
+    </div>
+
+    <button id="startRecordingBtn" style="width:150px; background-color: #007BFF; color: white;" onclick="startRecording()">
+      <i class="fas fa-circle"></i> Start
+    </button>
+
+    <button id="stopRecordingBtn" style="width:150px; background-color: #DC3545; color: white;" onclick="stopRecording()">
+      <i class="fas fa-stop"></i> Stop
+    </button>
+  </section>
 </main>
 
 <!-- Modal for Preview -->
 <div id="imageModal" class="modal">
-    <span class="close-btn" onclick="closeModal()">&times;</span>
-    <div class="modal-content">
-        <img id="modalImage" src="" alt="Preview" style="display: none;">
-        <video id="videoPlayer" controls style="display: none;">
-            <source id="modalVideoSource" src="" type="video/mp4">
-            Your browser does not support the video tag.
-        </video>
-        <canvas id="drawCanvas"></canvas>
-        <button id="penToggleBtn" onclick="toggleDrawing()">Red🖊️</button>
-    </div>
+  <span class="close-btn" onclick="closeModal()">&times;</span>
+  <div class="modal-content">
+    <img id="modalImage" src="" alt="Preview" style="display: none;">
+    <video id="videoPlayer" controls style="display: none;">
+      <source id="modalVideoSource" src="" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
+    <canvas id="drawCanvas"></canvas>
+    <button id="penToggleBtn" onclick="toggleDrawing()">Red🖊️</button>
+  </div>
 </div>
 
+<!-- Captured Media Grid -->
+<div id="captured-images" class="image-grid">
+  {% for file in files %}
+    <div class="image-item">
+      {% if file.endswith('.jpg') or file.endswith('.jpeg') or file.endswith('.png') %}
+        <img src="{{ url_for('temp_images', filename=file) }}"
+             alt="Patient Image"
+             onclick="showModal(this.src)">
+      {% elif file.endswith('.mp4') or file.endswith('.avi') %}
+        <video width="100%" controls onclick="showModal(this.querySelector('source').src, true)">
+          <source src="{{ url_for('serve_temp_video', filename=file) }}" type="video/mp4">
+          Your browser does not support the video tag.
+        </video>
+      {% endif %}
+      <div class="date">Filename: {{ file }}</div>
+    </div>
+  {% endfor %}
+</div>
 
- <div id="captured-images" class="image-grid">
-            {% for file in files %}
-                <div class="image-item">
-                    {% if file.endswith('.jpg') or file.endswith('.jpeg') or file.endswith('.png') %}
-                        <img src="{{ url_for('temp_images', filename=file) }}"
-                             alt="Patient Image"
-                             onclick="showModal(this.src)">
-                    {% elif file.endswith('.mp4') or file.endswith('.avi') %}
-                        <video width="100%" controls onclick="showModal(this.querySelector('source').src, true)">
-                            <source src="{{ url_for('serve_temp_video', filename=file) }}" type="video/mp4">
-                            Your browser does not support the video tag.
-                        </video>
-                    {% endif %}
-                    <div class="date">Filename: {{ file }}</div>
-                </div>
-            {% endfor %}
-        </div>
-        <div class="button-container" id="pdfButtonContainer"  aria-live="polite">
-           <button type="button" id="generatePdfButton">Generate PDF</button>
-        </div>
+<!-- PDF Button -->
+<div class="button-container" id="pdfButtonContainer" aria-live="polite">
+  <button type="button" id="generatePdfButton">Generate PDF</button>
+</div>
 <script>
 let isFlipped = false;
     let rotationAngle = 0;
@@ -929,38 +925,66 @@ function loadPatientData(patientId) {
         .then(response => response.json())
         .then(data => {
             if (data && data.status === 'success') {
-                const form = document.getElementById('patientForm');
-                form.elements['id'].value = data.patient.id;
-                form.elements['patient_name'].value = data.patient.patient_name;
-                form.elements['gender'].value = data.patient.gender;
-                form.elements['dob'].value = data.patient.dob;
-                form.elements['phone'].value = data.patient.phone;
-                form.elements['address'].value = data.patient.address;
+<!--                const form = document.getElementById('patientForm');-->
+<!--                form.elements['id'].value = data.patient.id;-->
+<!--                form.elements['patient_name'].value = data.patient.patient_name;-->
+<!--                form.elements['gender'].value = data.patient.gender;-->
+<!--                form.elements['dob'].value = data.patient.dob;-->
+<!--                form.elements['phone'].value = data.patient.phone;-->
+<!--                form.elements['address'].value = data.patient.address;-->
+
+                const patient = data.patient;
+                const dobFormatted = formatDate(patient.dob);
+                const age = calculateAge(patient.dob);
+
+                document.getElementById('headerPatientName').textContent = patient.patient_name;
+                document.getElementById('headerDobAge').textContent = `📅 ${dobFormatted} (${age})`;
+                document.getElementById('headerPatientId').textContent = `🆔 ${patient.id}`;
+                document.getElementById('headerAgeOnly').textContent = `${age} years`;
+                // Show header bar
+                document.getElementById('patientHeaderBar').classList.remove('hidden');
+
             }
             loadImageGrid(data.images, data.videos);
         })
         .catch(error => console.error('Error loading patient data:', error));
 }
 
+function formatDate(dob) {
+  const date = new Date(dob);
+  return date.toLocaleDateString('en-IN'); // Change format as needed
+}
+
+function calculateAge(dob) {
+  const birthDate = new Date(dob);
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const m = today.getMonth() - birthDate.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age;
+}
+
 // ===== Form Submission =====
 
-document.getElementById('patientForm').addEventListener('submit', function (event) {
-    event.preventDefault();
-    const formData = new FormData(this);
-    fetch('/save_patient', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === 'ok') {
-            console.log('Patient saved successfully!');
-        } else {
-            console.error('Failed to save patient.');
-        }
-    })
-    .catch(error => console.error('Error saving patient:', error));
-});
+<!--document.getElementById('patientForm').addEventListener('submit', function (event) {-->
+<!--    event.preventDefault();-->
+<!--    const formData = new FormData(this);-->
+<!--    fetch('/save_patient', {-->
+<!--        method: 'POST',-->
+<!--        body: formData-->
+<!--    })-->
+<!--    .then(response => response.json())-->
+<!--    .then(data => {-->
+<!--        if (data.status === 'ok') {-->
+<!--            console.log('Patient saved successfully!');-->
+<!--        } else {-->
+<!--            console.error('Failed to save patient.');-->
+<!--        }-->
+<!--    })-->
+<!--    .catch(error => console.error('Error saving patient:', error));-->
+<!--});-->
 
 // ===== Lifecycle Hooks =====
 

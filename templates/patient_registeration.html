@@ -21,7 +21,7 @@
   </div>
   <div class="flex space-x-6 text-gray-700 font-medium">
     <a href="/dashboard" class="hover:text-red-800 transition">Home</a>
-    <a href="/camera" class="hover:text-red-800 transition">Camera</a>
+    <a href="/patient_registration" class="hover:text-red-800 transition">Patient Registration</a>
     <a href="/patient_history" class="hover:text-red-800 transition">Patient History</a>
     <a href="/setting" class="hover:text-red-800 transition">Settings</a>
   </div>
@@ -45,36 +45,71 @@
 
     <!-- Form -->
     <div>
-      <h2 class="text-2xl font-bold text-blue-800 mb-6">Patient Registration</h2>
-      <form id="patientForm" class="grid grid-cols-1 gap-4">
-        <input type="text" name="id" placeholder="Patient ID" class="p-3 rounded-md bg-white border border-gray-300">
-        <input type="text" name="patient_name" placeholder="Patient Name" class="p-3 rounded-md bg-white border border-gray-300">
-        <select name="gender" class="p-3 rounded-md bg-white border border-gray-300">
-          <option value="">Gender</option>
-          <option value="Male">Male</option>
-          <option value="Female">Female</option>
-          <option value="Transgender">Transgender</option>
-        </select>
-        <input type="date" name="dob" placeholder="Date of Birth" class="p-3 rounded-md bg-white border border-gray-300">
-        <input type="text" name="phone" placeholder="Phone No." class="p-3 rounded-md bg-white border border-gray-300">
-        <input type="text" name="address" placeholder="Address" class="p-3 rounded-md bg-white border border-gray-300">
-        <button type="submit" class="bg-blue-800 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg w-full">
-          Save
-        </button>
-      </form>
+  <h2 class="text-2xl font-bold text-red-800 mb-6">Patient Registration</h2>
+  <form id="patientForm" class="grid grid-cols-1 gap-4">
+
+    <!-- Patient ID with search icon -->
+    <!-- Patient ID input with right-aligned clickable search icon -->
+<div class="relative">
+  <input type="text" name="id" id="patient_id" placeholder="Search or enter Patient ID"
+         class="pr-10 p-3 rounded-md bg-white border border-gray-300 w-full" />
+
+  <button type="button"  onclick="loadPatients()"  class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-red-800">
+    <!-- Search Icon (Heroicon style) -->
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2"
+         viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path stroke-linecap="round" stroke-linejoin="round"
+            d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
+    </svg>
+  </button>
+</div>
+
+    <input type="text" name="patient_name" id="patient_name" placeholder="Patient Name"
+           class="p-3 rounded-md bg-white border border-gray-300">
+
+    <select name="gender" id="gender" class="p-3 rounded-md bg-white border border-gray-300">
+      <option value="">Gender</option>
+      <option value="Male">Male</option>
+      <option value="Female">Female</option>
+      <option value="Transgender">Transgender</option>
+    </select>
+
+    <input type="date" id="dob" name="dob" placeholder="Date of Birth"
+           class="p-3 rounded-md bg-white border border-gray-300">
+
+    <input type="text"  id="phone"  name="phone" placeholder="Phone No."
+           class="p-3 rounded-md bg-white border border-gray-300">
+
+    <input type="text"  id="address"  name="address" placeholder="Address"
+           class="p-3 rounded-md bg-white border border-gray-300">
+
+    <div class="flex gap-6">
+      <button type="submit"
+              class="bg-red-800 hover:bg-red-800 text-white font-semibold px-6 py-3 rounded-lg w-full">
+        Save
+      </button>
+      <button type="submit"
+              class="bg-red-800 hover:bg-red-800 text-white font-semibold px-6 py-3 rounded-lg w-full">
+        Skip
+      </button>
     </div>
+
+  </form>
+</div>
+
 
   </div>
 </section>
 
 <!-- Submit Handler -->
 <script>
+
 document.getElementById("patientForm").addEventListener("submit", async function(e) {
   e.preventDefault();
   const form = e.target;
   const formData = new FormData(form);
   try {
-    const response = await fetch("/save_information", {
+    const response = await fetch("/register_patient", {
       method: "POST",
       body: formData
     });
@@ -82,14 +117,41 @@ document.getElementById("patientForm").addEventListener("submit", async function
     const result = await response.json();
 
     if (result.status === "saved" || result.status === "updated") {
-      console.log("✅ Profile " + result.status + " successfully!");
+      alert("Profile " + result.status + " successfully!");
     } else {
-      console.log("❌ Something went wrong!");
+      alert(" Something went wrong!");
     }
   } catch (err) {
-    console.error("Error submitting form:", err);
+    alert("Error submitting form:", err);
   }
 });
+
+async function loadPatients() {
+  const patientId = document.getElementById("patient_id").value.trim();
+  if (!patientId) {
+    alert("Please enter a Patient ID to search.");
+    return;
+  }
+
+  try {
+    const res = await fetch(`/load_patient/${patientId}`);
+    const data = await res.json();
+
+    if (data.status === "success") {
+      const p = data.patient;
+      document.getElementById("patient_name").value = p.patient_name;
+      document.getElementById("gender").value = p.gender;
+      document.getElementById("dob").value = p.dob;
+      document.getElementById("phone").value = p.phone;
+      document.getElementById("address").value = p.address;
+    } else {
+      alert("Patient not found.");
+    }
+  } catch (error) {
+    console.error("Error fetching patient:", error);
+    alert("Failed to load patient data.");
+  }
+}
 </script>
 
 <!-- Lottie Load -->

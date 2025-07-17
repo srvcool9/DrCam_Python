@@ -34,6 +34,7 @@ from models.profile_model import ProfileModel
 logging.basicConfig(level=logging.DEBUG)
 db = DatabaseService()
 toaster = ToastNotifier()
+patientData = PatientsModel()
 
 recording = False
 out = None
