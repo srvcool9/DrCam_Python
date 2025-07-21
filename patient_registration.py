@@ -44,7 +44,7 @@ def register_pat_reg_routes(app):
                 save_patient_history(patients)
                 print(patients)
                 status='saved'
-        return jsonify({'status': status})
+        return jsonify({'status': status, 'patient_id':persist_id})
 
 
     def save_patient_history(patient):

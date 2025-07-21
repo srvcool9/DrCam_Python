@@ -115,9 +115,9 @@ document.getElementById("patientForm").addEventListener("submit", async function
     });
 
     const result = await response.json();
-
     if (result.status === "saved" || result.status === "updated") {
       alert("Profile " + result.status + " successfully!");
+       window.location.href = "/camera?patient_id="+result.patient_id;
     } else {
       alert(" Something went wrong!");
     }

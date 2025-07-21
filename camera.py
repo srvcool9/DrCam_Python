@@ -583,6 +583,78 @@ def register_camera(app):
 
          videos_path_list.clear()
 
+
+ @app.route('/save_images', methods=['POST'])
+ def save_images_and_videos():
+     data = request.get_json()
+     # Process Images
+     if images_list:
+         image_filenames = list(images_list)  # copy before clearing
+         src_path = os.path.join(_get_documents_path(), 'DrCamApp', 'temp', 'images')
+         dest_path = os.path.join(_get_documents_path(), 'DrCamApp', data.get('patient_name'), 'images')
+         os.makedirs(dest_path, exist_ok=True)
+
+         for filename in image_filenames:
+             temp_path = os.path.join(src_path, filename)
+             dest_file_path = os.path.join(dest_path, filename)
+             try:
+                 if os.path.exists(temp_path):
+                     # If file exists in destination, remove it to avoid conflict
+                     if os.path.exists(dest_file_path):
+                         os.remove(dest_file_path)
+                     shutil.move(temp_path, dest_file_path)
+             except Exception as e:
+                 print(f"Failed to move {filename}: {e}")
+
+         images_to_save = []
+         for filename in image_filenames:
+             existing_image = db.custom_query(
+                 Queries.CHECK_IF_IMAGE_EXISTS,
+                 from_map=lambda row: row["imageBase64"],
+                 args=[data.get('patient_id'), filename]
+             )
+             if not existing_image:
+                 images_to_save.append(filename)
+
+         # Save image metadata
+         patient_images = [
+             PatientImagesModel(None, data.get('patient_id'), data.get('history_id'), filename, datetime.now())
+             for filename in images_to_save
+         ]
+         db.bulk_insert(patient_images)
+         images_list.clear()
+
+     # Process Videos
+     if videos_path_list:
+         video_filenames = []  # store only filenames for DB insert
+         dest_path = os.path.join(_get_documents_path(), 'DrCamApp', data.get('patient_name'), 'videos')
+         os.makedirs(dest_path, exist_ok=True)
+
+         for full_path in videos_path_list:
+             filename = os.path.basename(full_path)
+             temp_path = full_path
+             dest_file_path = os.path.join(dest_path, filename)
+
+             try:
+                 if os.path.exists(temp_path):
+                     # If file exists in destination, remove it
+                     if os.path.exists(dest_file_path):
+                         os.remove(dest_file_path)
+                     shutil.move(temp_path, dest_file_path)
+                     video_filenames.append(filename)
+             except Exception as e:
+                 print(f"Failed to move {filename}: {e}")
+
+         if video_filenames:
+             patient_videos = [
+                 PatientVideosModel(None, data.get('patient_id'), data.get('history_id'), filename, datetime.now())
+                 for filename in video_filenames
+             ]
+             db.bulk_insert(patient_videos)
+
+         videos_path_list.clear()
+
+     return None
  @app.route('/get_patient/<string:patient_id>')
  def get_patient(patient_id):
     patient = db.query_by_column("patients","patientId",patient_id,PatientsModel.from_map)

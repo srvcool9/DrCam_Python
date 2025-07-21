@@ -123,7 +123,7 @@
     /* Image Grid */
     .image-grid {
         display: grid;
-        grid-template-columns: repeat(4, 1fr); /* Exactly 4 items per row */
+        grid-template-columns: repeat(2, 1fr); /* Exactly 2 items per row */
         gap: 10px;
         margin-top: 4rem;
         padding: 4px 0;
@@ -292,6 +292,8 @@
             height: 130px;
         }
     }
+
+
 </style>
 
 
@@ -324,7 +326,7 @@
 </nav>
 
 <!-- Patient Header Bar -->
-<div id="patientHeaderBar" class="bg-gray-800 text-white px-6 py-3 flex justify-between items-center rounded-md shadow mb-4 hidden">
+<div id="patientHeaderBar" class="bg-red-800 text-white px-6 py-3 flex justify-between items-center rounded-md shadow mb-4 hidden">
   <div class="flex flex-col">
     <div id="headerPatientName" class="text-lg font-semibold">Name Here</div>
     <div class="text-sm text-gray-300 flex items-center gap-4">
@@ -337,76 +339,108 @@
   </div>
 </div>
 
-<main class="container">
-  <!-- Image and Video Grid with Sliders -->
-  <section class="image-section">
-    <h3>Recent Images</h3>
+<main class="flex h-[calc(100vh-100px)] overflow-hidden">
 
-    <div class="sliders">
-      <label for="zoom">Zoom</label>
-      <input type="range" id="zoom" min="1" max="2" step="0.1" value="{{ zoom }}" onchange="setZoom(this.value)">
+  <!-- LEFT SIDEBAR: Controls -->
+  <aside class="w-64 bg-white border-r p-4 overflow-y-auto">
+    <h3 class="text-lg font-semibold mb-4">Settings</h3>
 
-      <label for="brightness">Brightness</label>
-      <input type="range" id="brightness" min="-100" max="100" step="1" value="{{ brightness }}" onchange="setBrightness(this.value)">
+    <div class="space-y-4">
+      <div>
+        <label for="zoom">Zoom</label>
+        <input type="range" id="zoom" min="1" max="2" step="0.1" value="{{ zoom }}" onchange="setZoom(this.value)">
+      </div>
 
-      <label for="contrast">Contrast</label>
-      <input type="range" id="contrast" min="-100" max="100" step="1" value="{{ contrast }}" onchange="setContrast(this.value)">
+      <div>
+        <label for="brightness">Brightness</label>
+        <input type="range" id="brightness" min="-100" max="100" step="1" value="{{ brightness }}" onchange="setBrightness(this.value)">
+      </div>
 
-      <label for="exposure">Exposure</label>
-      <input type="range" id="exposure" min="-13" max="0" step="1" value="{{ exposure }}" onchange="setExposure(this.value)">
+      <div>
+        <label for="contrast">Contrast</label>
+        <input type="range" id="contrast" min="-100" max="100" step="1" value="{{ contrast }}" onchange="setContrast(this.value)">
+      </div>
 
-      <label for="white_balance">White Balance</label>
-      <input type="range" id="white_balance" min="2800" max="6500" step="100" value="{{ white_balance }}" onchange="setWhiteBalance(this.value)">
+      <div>
+        <label for="exposure">Exposure</label>
+        <input type="range" id="exposure" min="-13" max="0" step="1" value="{{ exposure }}" onchange="setExposure(this.value)">
+      </div>
 
-      <div style="gap: 10px; display: flex;">
-        <button class="btn" id="reset_button" aria-label="Reset settings button" style="background: #ef4444;">Reset</button>
-        <button class="btn" id="save_setting" aria-label="Save settings button" style="background: #0077a3;">Save Setting</button>
+      <div>
+        <label for="white_balance">White Balance</label>
+        <input type="range"  class="bg-red-800" id="white_balance" min="2800" max="6500" step="100" value="{{ white_balance }}" onchange="setWhiteBalance(this.value)">
+      </div>
+
+      <div class="flex gap-2">
+        <button class="btn text-white" id="reset_button" style="background: #ef4444;">Reset</button>
+        <button class="btn text-white" id="save_setting" style="background: #0077a3;">Save</button>
       </div>
     </div>
+  </aside>
+
+  <!-- CENTER PANEL: Live Camera View -->
+  <section class="w-[900px] h-[600px] bg-black flex items-center justify-center relative">
+    <img id="cameraFeed"
+         src="{{ url_for('video_feed') }}"
+         style="position: absolute;
+                top: 50%; left: 50%;
+                transform: translate(-50%, -50%) rotate(0deg) scaleX(1);
+                transform-origin: center center;
+                transition: transform 0.3s ease;
+                max-width: none; width: 900px; height: 100%;">
+
+    <!-- Action Buttons -->
+    <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-4">
+      <button style="width:129px; background-color: #007BFF; color: white;" onclick="flipCamera()">
+        <i class="fas fa-arrows-alt-h"></i> Flip
+      </button>
+      <button style="width:150px; background-color: #007BFF; color: white;" onclick="rotateCamera()">
+        <i class="fas fa-sync-alt"></i> Rotate
+      </button>
+      <button id="captureButton" style="width:150px; background-color: #28a745; color: white;" onclick="captureImage()">
+        <i class="fas fa-camera"></i> Capture
+      </button>
+      <button id="startRecordingBtn" style="width:150px; background-color: #007BFF; color: white;" onclick="startRecording()">
+        <i class="fas fa-circle"></i> Start
+      </button>
+      <button id="stopRecordingBtn" style="width:150px; background-color: #DC3545; color: white;" onclick="stopRecording()">
+        <i class="fas fa-stop"></i> Stop
+      </button>
+    </div>
   </section>
 
-  <!-- Camera Section -->
-  <section class="camera-section">
-    <h1>Live Camera</h1>
+  <!-- RIGHT PANEL: Thumbnail Previews -->
+ <aside class="w-[23rem] bg-gray-100 border-l p-4 overflow-y-auto">
+  <h3 class="text-lg font-semibold mb-4">Captured</h3>
 
-    <div id="cameraWrapper" style="width: 750px; height: 480px; position: relative; overflow: hidden; margin: auto;">
-      <img id="cameraFeed"
-           src="{{ url_for('video_feed') }}"
-           style="position: absolute;
-                  top: 50%; left: 50%;
-                  transform: translate(-50%, -50%) rotate(0deg) scaleX(1);
-                  transform-origin: center center;
-                  transition: transform 0.3s ease;
-                  max-width: none; width: auto; height: 100%;">
-    </div>
+  <!-- Captured Media Grid -->
+  <div id="captured-images" class="image-grid">
+    {% for file in files %}
+      <div class="image-item">
+        {% if file.endswith('.jpg') or file.endswith('.jpeg') or file.endswith('.png') %}
+          <img src="{{ url_for('temp_images', filename=file) }}"
+               alt="Patient Image"
+               onclick="showModal(this.src)">
+        {% elif file.endswith('.mp4') or file.endswith('.avi') %}
+          <video width="100%" controls onclick="showModal(this.querySelector('source').src, true)">
+            <source src="{{ url_for('serve_temp_video', filename=file) }}" type="video/mp4">
+            Your browser does not support the video tag.
+          </video>
+        {% endif %}
+        <div class="date">Filename: {{ file }}</div>
+      </div>
+    {% endfor %}
+  </div>
+  <div style="display:flex; gap:10px">
+     <button type="button" onclick="saveImage()" id ="save_images" class="mt-4 w-full bg-red-800 text-white py-2 rounded">
+    Save images
+  </button>
+     <button type="button" id="generatePdfButton" class="mt-4 w-full bg-red-800 text-white py-2 rounded">
+    Generate PDF
+  </button>
+  </div>
 
-    <br><br>
-
-    <button style="width:129px; background-color: #007BFF; color: white;" onclick="flipCamera()">
-      <i class="fas fa-arrows-alt-h"></i> Flip
-    </button>
-
-    <button style="width:150px; background-color: #007BFF; color: white;" onclick="rotateCamera()">
-      <i class="fas fa-sync-alt"></i> Rotate
-    </button>
-
-    <button id="captureButton" style="width:150px; background-color: #28a745; color: white;" onclick="captureImage()">
-      <i class="fas fa-camera"></i> Capture
-    </button>
-
-    <div id="loadingIcon" style="display:none;">
-      <img src="static/loading.gif" alt="Loading..." />
-    </div>
-
-    <button id="startRecordingBtn" style="width:150px; background-color: #007BFF; color: white;" onclick="startRecording()">
-      <i class="fas fa-circle"></i> Start
-    </button>
-
-    <button id="stopRecordingBtn" style="width:150px; background-color: #DC3545; color: white;" onclick="stopRecording()">
-      <i class="fas fa-stop"></i> Stop
-    </button>
-  </section>
-</main>
+</aside>
 
 <!-- Modal for Preview -->
 <div id="imageModal" class="modal">
@@ -422,32 +456,15 @@
   </div>
 </div>
 
-<!-- Captured Media Grid -->
-<div id="captured-images" class="image-grid">
-  {% for file in files %}
-    <div class="image-item">
-      {% if file.endswith('.jpg') or file.endswith('.jpeg') or file.endswith('.png') %}
-        <img src="{{ url_for('temp_images', filename=file) }}"
-             alt="Patient Image"
-             onclick="showModal(this.src)">
-      {% elif file.endswith('.mp4') or file.endswith('.avi') %}
-        <video width="100%" controls onclick="showModal(this.querySelector('source').src, true)">
-          <source src="{{ url_for('serve_temp_video', filename=file) }}" type="video/mp4">
-          Your browser does not support the video tag.
-        </video>
-      {% endif %}
-      <div class="date">Filename: {{ file }}</div>
-    </div>
-  {% endfor %}
-</div>
+</main>
 
-<!-- PDF Button -->
-<div class="button-container" id="pdfButtonContainer" aria-live="polite">
-  <button type="button" id="generatePdfButton">Generate PDF</button>
-</div>
+
+
+
 <script>
-let isFlipped = false;
-    let rotationAngle = 0;
+  let currentPatient = {};
+  let isFlipped = false;
+  let rotationAngle = 0;
 
     function updateTransform() {
         const camera = document.getElementById('cameraFeed');
@@ -517,6 +534,24 @@ function setWhiteBalance(value) {
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: 'white_balance=' + value
     });
+}
+
+function saveImage(){
+
+fetch("/api/save_images", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify(currentPatient)
+})
+.then(response => response.json())
+.then(data => {
+  alert("Images & Videos saved successfully);
+})
+.catch(error => {
+  alert("Error:", error);
+});
 }
 
 document.getElementById('save_setting').addEventListener('click', async () => {
@@ -659,22 +694,17 @@ async function resetCameraSettings() {
 // ===== Capture and Recording =====
 
 function captureImage() {
-    const form = document.getElementById('patientForm');
-    const isFormEmpty = [...form.elements].every(el => !el.value || el.type === "submit");
-    const patientName = form.elements['patient_name'].value.trim().replace(/\s+/g, '_') || 'unknown';
-    const publicFlag = isFormEmpty ? 'true' : 'false';
+
+    const patientName =  currentPatient.patient_name.replace(/\s+/g, '_') || 'unknown';
+    const publicFlag = 'false'
     const captureUrl = `/capture_photo/${publicFlag}/${encodeURIComponent(patientName)}`;
-    const loadingIcon = document.getElementById('loadingIcon');
-    const rawPatientId = form.elements['id']?.value.trim();
+    const rawPatientId = currentPatient.patient_id
     const patientId = rawPatientId === "" ? null : rawPatientId;
     captureButton.disabled = true;
-    loadingIcon.style.display = 'block';
-
     fetch(captureUrl, { method: 'POST' })
         .then(response => response.ok && loadCapturedImages(patientId))
         .finally(() => {
             captureButton.disabled = false;
-            loadingIcon.style.display = 'none';
         });
 }
 
@@ -757,8 +787,7 @@ function showModal(src, isVideo = false) {
 function closeModal() {
     const image = document.getElementById('modalImage');
     const canvas = document.getElementById('drawCanvas');
-    const form = document.getElementById('patientForm');
-    const rawPatientId = form.elements['id']?.value.trim();
+    const rawPatientId = currentPatient.patient_id;
     const patientId = rawPatientId === "" ? null : rawPatientId;
 
     if (image && canvas && image.style.display === 'block' && penEnabled) {
@@ -925,15 +954,8 @@ function loadPatientData(patientId) {
         .then(response => response.json())
         .then(data => {
             if (data && data.status === 'success') {
-<!--                const form = document.getElementById('patientForm');-->
-<!--                form.elements['id'].value = data.patient.id;-->
-<!--                form.elements['patient_name'].value = data.patient.patient_name;-->
-<!--                form.elements['gender'].value = data.patient.gender;-->
-<!--                form.elements['dob'].value = data.patient.dob;-->
-<!--                form.elements['phone'].value = data.patient.phone;-->
-<!--                form.elements['address'].value = data.patient.address;-->
-
                 const patient = data.patient;
+                 currentPatient = data.patient;
                 const dobFormatted = formatDate(patient.dob);
                 const age = calculateAge(patient.dob);
 
