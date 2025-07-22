@@ -348,27 +348,27 @@
     <div class="space-y-4">
       <div>
         <label for="zoom">Zoom</label>
-        <input type="range" id="zoom" min="1" max="2" step="0.1" value="{{ zoom }}" onchange="setZoom(this.value)">
+        <input type="range" id="zoom" min="1" max="2" step="0.1" value="{{ zoom }}" onchange="set_zoom(this.value)">
       </div>
 
       <div>
         <label for="brightness">Brightness</label>
-        <input type="range" id="brightness" min="-100" max="100" step="1" value="{{ brightness }}" onchange="setBrightness(this.value)">
+        <input type="range" id="brightness" min="-100" max="100" step="1" value="{{ brightness }}" onchange="brightness(this.value)">
       </div>
 
       <div>
         <label for="contrast">Contrast</label>
-        <input type="range" id="contrast" min="-100" max="100" step="1" value="{{ contrast }}" onchange="setContrast(this.value)">
+        <input type="range" id="contrast" min="-100" max="100" step="1" value="{{ contrast }}" onchange="contrast(this.value)">
       </div>
 
       <div>
         <label for="exposure">Exposure</label>
-        <input type="range" id="exposure" min="-13" max="0" step="1" value="{{ exposure }}" onchange="setExposure(this.value)">
+        <input type="range" id="exposure" min="-13" max="0" step="1" value="{{ exposure }}" onchange="exposure(this.value)">
       </div>
 
       <div>
         <label for="white_balance">White Balance</label>
-        <input type="range"  class="bg-red-800" id="white_balance" min="2800" max="6500" step="100" value="{{ white_balance }}" onchange="setWhiteBalance(this.value)">
+        <input type="range"  class="bg-red-800" id="white_balance" min="2800" max="6500" step="100" value="{{ white_balance }}" onchange="white_balance(this.value)">
       </div>
 
       <div class="flex gap-2">
@@ -481,7 +481,7 @@
         rotationAngle = (rotationAngle + 90) % 360;
         updateTransform();
     }
-// ===== Utility Functions =====
+  // ===== Utility Functions =====
 
 function getQueryParam(name) {
     const urlParams = new URLSearchParams(window.location.search);
@@ -496,65 +496,65 @@ function formatTime(seconds) {
 
 // ===== Camera Controls =====
 
-function setZoom(value) {
+  function set_zoom(value) {
     fetch('/set_zoom', {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: 'zoom=' + value
     });
-}
+};
 
-function setBrightness(value) {
+
+  function brightness(value) {
     fetch('/set_brightness', {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: 'brightness=' + value
     });
-}
+  }
 
-function setContrast(value) {
+  function contrast(value) {
             fetch('/set_contrast', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/x-www-form-urlencoded'},
                 body: 'contrast=' + value
             });
-}
+  }
 
-function setExposure(value) {
+  function exposure(value) {
     fetch('/set_exposure', {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: 'exposure=' + value
     });
-}
+  }
 
-function setWhiteBalance(value) {
+  function white_balance(value) {
     fetch('/set_white_balance', {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: 'white_balance=' + value
     });
-}
+  }
 
-function saveImage(){
+  function saveImage(){
+     fetch("/api/save_images", {
+      method: "POST",
+      headers: {
+      "Content-Type": "application/json"
+     },
+     body: JSON.stringify(currentPatient)
+     })
+    .then(response => response.json())
+    .then(data => {
+     alert("Images & Videos saved successfully");
+    })
+    .catch(error => {
+     alert("Error:", error);
+   });
+  }
 
-fetch("/api/save_images", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify(currentPatient)
-})
-.then(response => response.json())
-.then(data => {
-  alert("Images & Videos saved successfully);
-})
-.catch(error => {
-  alert("Error:", error);
-});
-}
-
-document.getElementById('save_setting').addEventListener('click', async () => {
+ document.getElementById('save_setting').addEventListener('click', async () => {
     const zoom = parseFloat(document.getElementById('zoom')?.value || 1);
     const brightness = parseInt(document.getElementById('brightness')?.value || 0);
     const contrast = parseInt(document.getElementById('contrast')?.value || 0);
@@ -589,7 +589,7 @@ document.getElementById('save_setting').addEventListener('click', async () => {
 });
 
 
-document.getElementById('reset_button').addEventListener('click', async () => {
+ document.getElementById('reset_button').addEventListener('click', async () => {
   // Call the reset function to reset all camera settings to defaults
   await resetCameraSettings();
   await deleteSettings();
@@ -604,7 +604,7 @@ document.getElementById('reset_button').addEventListener('click', async () => {
   }, 1200);
 });
 
-async function deleteSettings() {
+ async function deleteSettings() {
     try {
         const response = await fetch('/reset_settings', {
             method: 'POST'
@@ -617,7 +617,8 @@ async function deleteSettings() {
     }
 }
 
-async function resetCameraSettings() {
+
+ async function resetCameraSettings() {
   // Reset UI to typical default values
   const defaults = {
     zoom: 1,
@@ -693,22 +694,34 @@ async function resetCameraSettings() {
 
 // ===== Capture and Recording =====
 
-function captureImage() {
+  function captureImage() {
+    let publicFlag = 'true';
+    let patientName = 'unknown';
+    let patientId = null;
 
-    const patientName =  currentPatient.patient_name.replace(/\s+/g, '_') || 'unknown';
-    const publicFlag = 'false'
+    if (currentPatient.patient_name!== undefined) {
+        const rawPatientId = currentPatient.patient_id;
+        patientName = currentPatient.patient_name.replace(/\s+/g, '_') || 'unknown';
+        publicFlag = 'false';
+        patientId = rawPatientId === "" ? null : rawPatientId;
+    }
+
     const captureUrl = `/capture_photo/${publicFlag}/${encodeURIComponent(patientName)}`;
-    const rawPatientId = currentPatient.patient_id
-    const patientId = rawPatientId === "" ? null : rawPatientId;
-    captureButton.disabled = true;
+
+    const captureButton = document.getElementById('captureButton');
+    if (captureButton) captureButton.disabled = true;
+
     fetch(captureUrl, { method: 'POST' })
-        .then(response => response.ok && loadCapturedImages(patientId))
+        .then(response => response.ok
+        && loadCapturedImages(patientId)
+        )
         .finally(() => {
-            captureButton.disabled = false;
+            if (captureButton) captureButton.disabled = false;
         });
 }
 
-function startRecording() {
+
+  function startRecording() {
     const form = document.getElementById('patientForm');
     const isFormEmpty = [...form.elements].every(el => !el.value || el.type === "submit");
     const patientName = form.elements['patient_name'].value.trim().replace(/\s+/g, '_') || 'unknown';
@@ -729,9 +742,9 @@ function startRecording() {
                 }, 1000);
             }
         });
-}
+  }
 
-function stopRecording() {
+  function stopRecording() {
     fetch('/stop_recording', { method: 'POST' })
         .then(response => {
             if (response.ok) {
@@ -740,11 +753,11 @@ function stopRecording() {
                 clearInterval(timerInterval);
             }
         });
-}
+  }
 
 // ===== Modal Preview (Image/Video) =====
 
-function showModal(src, isVideo = false) {
+  function showModal(src, isVideo = false) {
     const modal = document.getElementById('imageModal');
     const image = document.getElementById('modalImage');
     const video = document.getElementById('videoPlayer');
@@ -781,10 +794,10 @@ function showModal(src, isVideo = false) {
     modal.style.display = 'block';
     modal.classList.add('show');
     setTimeout(resizeCanvasToMedia, 300);
-}
+  }
 
 
-function closeModal() {
+  function closeModal() {
     const image = document.getElementById('modalImage');
     const canvas = document.getElementById('drawCanvas');
     const rawPatientId = currentPatient.patient_id;
@@ -828,44 +841,44 @@ function closeModal() {
     }
 
     document.getElementById('imageModal').style.display = 'none';
-}
+  }
 
 // ===== Drawing on Canvas =====
 
-let isDrawing = false;
-let penEnabled = false;
-const canvas = document.getElementById('drawCanvas');
-const ctx = canvas.getContext('2d');
+ let isDrawing = false;
+ let penEnabled = false;
+ const canvas = document.getElementById('drawCanvas');
+ const ctx = canvas.getContext('2d');
 
-function toggleDrawing() {
+ function toggleDrawing() {
     penEnabled = !penEnabled;
     canvas.style.display = penEnabled ? 'block' : 'none';
-}
+ }
 
-canvas.addEventListener('mousedown', e => {
+ canvas.addEventListener('mousedown', e => {
     if (!penEnabled) return;
     isDrawing = true;
     ctx.beginPath();
     ctx.moveTo(e.offsetX, e.offsetY);
-});
+ });
 
-canvas.addEventListener('mousemove', e => {
+ canvas.addEventListener('mousemove', e => {
     if (isDrawing && penEnabled) {
         ctx.lineTo(e.offsetX, e.offsetY);
         ctx.strokeStyle = 'red';
         ctx.lineWidth = 2;
         ctx.stroke();
     }
-});
+ });
 
-canvas.addEventListener('mouseup', () => {
+ canvas.addEventListener('mouseup', () => {
     if (penEnabled) {
         isDrawing = false;
         ctx.closePath();
     }
-});
+ });
 
-function resizeCanvasToMedia() {
+ function resizeCanvasToMedia() {
     const image = document.getElementById('modalImage');
     const video = document.getElementById('videoPlayer');
 
@@ -876,11 +889,11 @@ function resizeCanvasToMedia() {
     canvas.height = height;
     canvas.style.width = width + 'px';
     canvas.style.height = height + 'px';
-}
+ }
 
 // ===== Patient Data & Image Loading =====
 
-function loadCapturedImages(patientId) {
+ function loadCapturedImages(patientId) {
     const encodedId = patientId ? encodeURIComponent(patientId) : 'null';
 
     fetch(`/get_captured_image/${encodedId}`)
@@ -891,9 +904,9 @@ function loadCapturedImages(patientId) {
             }
         })
         .catch(error => console.error('Error loading captured images:', error));
-}
+ }
 
-function loadImageGrid(images = [], videos = []) {
+ function loadImageGrid(images = [], videos = []) {
     const container = document.getElementById('captured-images');
     if (!container) return;
     container.innerHTML = '';
@@ -947,9 +960,9 @@ function loadImageGrid(images = [], videos = []) {
                 <div class="date">Filename: ${videoPath}</div>
             </div>`;
     });
-}
+ }
 
-function loadPatientData(patientId) {
+ function loadPatientData(patientId) {
     fetch(`/get_patient/${patientId}`)
         .then(response => response.json())
         .then(data => {
@@ -970,14 +983,14 @@ function loadPatientData(patientId) {
             loadImageGrid(data.images, data.videos);
         })
         .catch(error => console.error('Error loading patient data:', error));
-}
+ }
 
-function formatDate(dob) {
+ function formatDate(dob) {
   const date = new Date(dob);
   return date.toLocaleDateString('en-IN'); // Change format as needed
-}
+ }
 
-function calculateAge(dob) {
+ function calculateAge(dob) {
   const birthDate = new Date(dob);
   const today = new Date();
   let age = today.getFullYear() - birthDate.getFullYear();
@@ -986,7 +999,7 @@ function calculateAge(dob) {
     age--;
   }
   return age;
-}
+ }
 
 // ===== Form Submission =====
 
@@ -1010,19 +1023,19 @@ function calculateAge(dob) {
 
 // ===== Lifecycle Hooks =====
 
-let timerInterval;
-let secondsElapsed = 0;
+ let timerInterval;
+ let secondsElapsed = 0;
 
-document.addEventListener('DOMContentLoaded', () => {
+ document.addEventListener('DOMContentLoaded', () => {
     const pid = getQueryParam('patient_id');
     if (pid) loadPatientData(pid);
-});
+ });
 
-window.addEventListener('beforeunload', () => {
+ window.addEventListener('beforeunload', () => {
     navigator.sendBeacon('/shutdown');
-});
+ });
 
-generatePdfButton.addEventListener('click', function() {
+ generatePdfButton.addEventListener('click', function() {
      const form = document.getElementById('patientForm');
     const rawPatientId = form.elements['id']?.value.trim();
     const patientId = rawPatientId === "" ? null : rawPatientId;

@@ -88,7 +88,7 @@
               class="bg-red-800 hover:bg-red-800 text-white font-semibold px-6 py-3 rounded-lg w-full">
         Save
       </button>
-      <button type="submit"
+      <button type="button"   onclick="skip()"
               class="bg-red-800 hover:bg-red-800 text-white font-semibold px-6 py-3 rounded-lg w-full">
         Skip
       </button>
@@ -103,6 +103,10 @@
 
 <!-- Submit Handler -->
 <script>
+
+    function skip() {
+     window.location.href = "/camera";
+    }
 
 document.getElementById("patientForm").addEventListener("submit", async function(e) {
   e.preventDefault();
@@ -152,6 +156,8 @@ async function loadPatients() {
     alert("Failed to load patient data.");
   }
 }
+
+
 </script>
 
 <!-- Lottie Load -->

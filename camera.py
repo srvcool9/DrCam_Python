@@ -317,7 +317,10 @@ def register_camera(app):
 
      # If patient_id is 'null' or empty, return existing images_list as-is
      if not patient_id.strip() or patient_id.lower() == 'null':
+         return jsonify({'images': fetch_public_images()})
+     else:
          return jsonify({'images': images_list})
+
 
 
      # Fetch image base64s from DB
@@ -334,6 +337,7 @@ def register_camera(app):
                  images_list.append(image_name)
 
      return jsonify({'images': images_list})
+
 
  @app.route('/get_patient_id_name/<string:patient_id>', methods=['GET'])
  def get_patient_details(patient_id):
@@ -677,9 +681,36 @@ def register_camera(app):
 
     return jsonify({'status': 'error', 'message': 'Patient not found'})
 
+ def fetch_public_images():
+     image_names = []
+     temp_path = os.path.join(app.root_path, 'temp_images', 'captures')
+     os.makedirs(temp_path, exist_ok=True)
+     image_path = os.path.join(_get_documents_path(), 'DrCamApp', 'public', 'images')
 
+     # Collect image file metadata
+     image_files = []
+     for filename in os.listdir(image_path):
+         src_file = os.path.join(image_path, filename)
+         dst_file = os.path.join(temp_path, filename)
 
+         if not os.path.isfile(src_file):
+             continue
 
+         try:
+             # Get last modified time
+             mtime = os.path.getmtime(src_file)
+             image_files.append((filename, mtime))
+
+             # Copy image to temp folder
+             shutil.copy2(src_file, dst_file)
+         except Exception as e:
+             print(f"[ERROR] Failed to copy {filename} → {dst_file}: {e}")
+
+     # Sort images by modified time (latest first)
+     image_files.sort(key=lambda x: x[1], reverse=True)
+     image_names = [filename for filename, _ in image_files]
+
+     return image_names
  def get_all_patient_images(patient_id, patient_name):
     global prefilled_image_list
     prefilled_image_list.clear()
