@@ -588,7 +588,7 @@ def register_camera(app):
          videos_path_list.clear()
 
 
- @app.route('/save_images', methods=['POST'])
+ @app.route('/api/save_images', methods=['POST'])
  def save_images_and_videos():
      data = request.get_json()
      # Process Images
@@ -619,10 +619,12 @@ def register_camera(app):
              )
              if not existing_image:
                  images_to_save.append(filename)
-
+         #savepatienthistory
+         patient_history=PatientHistoryModel(data.get('id'),data.get('patient_id'),datetime.now(),datetime.now())
+         history_id= db.insert(patient_history)
          # Save image metadata
          patient_images = [
-             PatientImagesModel(None, data.get('patient_id'), data.get('history_id'), filename, datetime.now())
+             PatientImagesModel(None, data.get('patient_id'), history_id, filename, datetime.now())
              for filename in images_to_save
          ]
          db.bulk_insert(patient_images)
@@ -673,9 +675,9 @@ def register_camera(app):
                 'gender': patient.gender,
                 'dob': str(patient.date_of_birth),
                 'phone': patient.phone,
-                'address': patient.address
-            },
-            'images': prefilled_image_list,
+                'address': patient.address,
+                'patient_id':patient.patient_id
+            },  'images': prefilled_image_list,
             'videos':prefilled_videos_list
         })
 
@@ -695,7 +697,6 @@ def register_camera(app):
 
          if not os.path.isfile(src_file):
              continue
-
          try:
              # Get last modified time
              mtime = os.path.getmtime(src_file)
@@ -709,8 +710,8 @@ def register_camera(app):
      # Sort images by modified time (latest first)
      image_files.sort(key=lambda x: x[1], reverse=True)
      image_names = [filename for filename, _ in image_files]
-
      return image_names
+
  def get_all_patient_images(patient_id, patient_name):
     global prefilled_image_list
     prefilled_image_list.clear()
