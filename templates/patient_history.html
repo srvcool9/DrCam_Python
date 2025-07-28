@@ -63,7 +63,7 @@
           <td class="p-3 border">{{ dto.patient_name }}</td>
           <td class="p-3 border">{{ dto.last_visited or "N/A" }}</td>
           <td class="p-3 border">
-            <span class="cursor-pointer" onclick='openHistoryModal({{ dto.visit_dates | tojson | safe }})'>👁️</span>
+            <span class="cursor-pointer" onclick='openHistoryModal({{ dto.visit_dates | tojson | safe }},{{dto.patient_id}})'>👁️</span>
           </td>
           <td class="p-3 border">
             <span class="cursor-pointer" onclick="location.href='/pdf_gen/{{ dto.patient_id }}/{{dto.patient_name}}'">📄</span>
@@ -81,7 +81,7 @@
 
 <!-- Modal Script -->
 <script>
-  function openHistoryModal(dates) {
+  function openHistoryModal(dates,patient_id) {
     let modal = document.getElementById("historyModal");
 
     if (!modal) {
@@ -117,14 +117,29 @@
     list.innerHTML = "";
 
     if (Array.isArray(dates) && dates.length) {
-      dates.forEach(date => {
-        const li = document.createElement("li");
-        li.textContent = date;
-        list.appendChild(li);
-      });
-    } else {
-      list.innerHTML = "<li>No visit history found.</li>";
-    }
+  dates.forEach(date => {
+    const li = document.createElement("li");
+
+    // Create <a> tag instead of plain text
+    const link = document.createElement("a");
+
+    link.onclick = () => {
+      window.location.href = `/camera?patient_id=${encodeURIComponent(patient_id)}&appointment_date=${encodeURIComponent(date)}`;
+    };
+
+    link.textContent = date;
+    link.style.color = "#0077a3";
+    link.style.textDecoration = "underline";
+    link.style.cursor = "pointer";
+    link.target = "_blank"; // optional: opens in new tab
+
+    li.appendChild(link);
+    list.appendChild(li);
+  });
+} else {
+  list.innerHTML = "<li>No visit history found.</li>";
+}
+
   }
 </script>
 

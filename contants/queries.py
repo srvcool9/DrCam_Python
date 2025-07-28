@@ -97,13 +97,24 @@ GROUP BY p.patientId, p.appointmentId, p.patientName;
     GET_ALL_PATIENT_IMAGES ='''
         SELECT imageBase64 FROM patient_images WHERE patientId = ?
     '''
+    GET_ALL_PATIENT_IMAGES_BY_APPOINTMENT = '''
+            
+            select distinct imageBase64
+            from patient_images pi 
+            inner join patients p  
+            on p.patientId =pi.patientId
+            inner join patient_history ph 
+            on ph.patientId =p.patientId 
+            where p.patientId  = ? and ph.appointmentDate = ?
+        '''
+
 
     GET_ALL_PATIENT_IMAGES_BY_APPOINTMENT_ID = '''
             select distinct imageBase64 
             from patient_images pi 
             inner join patients p  
             on p.patientId =pi.patientId
-            where p.appointmentId = ?
+            where p.patientId = ?
         '''
 
     GET_ALL_PATIENT_VIDEOS= '''

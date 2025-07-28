@@ -205,22 +205,45 @@
     pointer-events: auto;
     border: 1px dashed red; /* Optional: visual debug aid */
 }
+     #penToggleBtn {
+    position: absolute;
+    top: -25px;
+    left: 10px;
+    z-index: 20;
+    padding: 0.4rem 0.8rem;
+    font-size: 1rem;
+    border-radius: 6px;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    width: 65px;
+    background-color: #e74c3c;
+  }
 
+  @media (max-width: 1200px) {
+    #drawCanvas {
+      height: 240px !important;
+    }
 
     #penToggleBtn {
-        position: absolute;
-        top: 4px;
-        right: 10px;
-        z-index: 20;
-        padding: 0.4rem 0.8rem;
-        font-size: 1rem;
-        border-radius: 6px;
-        border: none;
-        color: #fff;
-        cursor: pointer;
-        width: 75px;
-        background-color: #e74c3c;
+      top: -20px;
+      left: 0;
     }
+  }
+
+  @media (max-width: 768px) {
+    #drawCanvas {
+      height: 180px !important;
+    }
+
+    #penToggleBtn {
+      left: 0;
+      top: -15px;
+    }
+  }
+
+
+
 
     .close-btn {
         position: absolute;
@@ -300,6 +323,52 @@
 
 </style>
 
+  <!-- Responsive maintainence -->
+   <style>
+  .w-20rem { width: 20rem; }
+  .w-22rem { width: 22rem; }
+  .w-23rem { width: 23rem; }
+  .w-24rem { width: 24rem; }
+
+  .min-h-400 { min-height: 400px; }
+  .min-h-500 { min-height: 500px; }
+  .min-h-600 { min-height: 600px; }
+  .min-h-700 { min-height: 700px; }
+
+    /* Widths */
+  .w-600 { width: 600px; }
+  .w-720 { width: 720px; }
+  .w-900 { width: 900px; }
+  .w-1080 { width: 1080px; }
+
+  /* Heights */
+  .h-400 { height: 400px; }
+  .h-500 { height: 500px; }
+  .h-580 { height: 580px; }
+  .h-630 { height: 630px; }
+  .h-700 { height: 700px; }
+
+  /* Responsive Media Queries */
+  @media (min-width: 640px) {
+    .sm\:w-600 { width: 600px; }
+    .sm\:h-500 { height: 500px; }
+  }
+
+  @media (min-width: 768px) {
+    .md\:w-720 { width: 720px; }
+    .md\:h-580 { height: 580px; }
+  }
+
+  @media (min-width: 1024px) {
+    .lg\:w-900 { width: 900px; }
+    .lg\:h-630 { height: 630px; }
+  }
+
+  @media (min-width: 1280px) {
+    .xl\:w-1080 { width: 1080px; }
+    .xl\:h-700 { height: 700px; }
+  }
+  </style>
 
 </head>
 <body>
@@ -346,7 +415,10 @@
 <main class="flex h-[calc(100vh-100px)] overflow-hidden">
 
   <!-- LEFT SIDEBAR: Controls -->
-  <aside class="w-64 bg-white border-r p-4 overflow-y-auto">
+  <aside class="w-64 bg-white border-r p-4 overflow-y-auto" style="height:700px;">
+<!--   <aside class="w-64 bg-white border-r p-4 overflow-y-auto-->
+<!--              h-400 sm:h-500 md:h-600 lg:h-700 xl:h-800">-->
+
     <h3 class="text-lg font-semibold mb-4">Settings</h3>
 
     <div class="space-y-4">
@@ -383,7 +455,10 @@
   </aside>
 
   <!-- CENTER PANEL: Live Camera View -->
-  <section class="w-[900px] h-[600px] bg-black flex items-center justify-center relative">
+  <section class=" bg-black flex items-center justify-center relative" style="width:900px; height:630px;">
+<!--  <section class="bg-black flex items-center justify-center relative-->
+<!--                w-full sm:w-600 md:w-720 lg:w-900 xl:w-1080-->
+<!--                h-400 sm:h-500 md:h-580 lg:h-630 xl:h-700">-->
     <img id="cameraFeed"
          src="{{ url_for('video_feed') }}"
          style="position: absolute;
@@ -414,7 +489,8 @@
   </section>
 
   <!-- RIGHT PANEL: Thumbnail Previews -->
- <aside class="w-[23rem] bg-gray-100 border-l p-4 overflow-y-auto">
+ <aside class="w-[23rem] bg-gray-100 border-l p-4 overflow-y-auto" style="height: 600px;width: 365px;">
+<!--  <aside class="bg-gray-100 border-l p-4 overflow-y-auto w-full sm:w-20rem md:w-22rem lg:w-23rem xl:w-24rem min-h-400 md:min-h-500 lg:min-h-600 xl:min-h-700">-->
   <h3 class="text-lg font-semibold mb-4">Captured</h3>
 
   <!-- Captured Media Grid -->
@@ -447,19 +523,54 @@
 </aside>
 
 <!-- Modal for Preview -->
-<div id="imageModal" class="modal">
-  <span class="close-btn" onclick="closeModal()">&times;</span>
-  <div class="modal-content">
-    <img id="modalImage" src="" alt="Preview" style="display: none;">
-    <video id="videoPlayer" controls style="display: none;">
-      <source id="modalVideoSource" src="" type="video/mp4">
-      Your browser does not support the video tag.
-    </video>
-    <canvas id="drawCanvas"></canvas>
-    <button id="penToggleBtn" onclick="toggleDrawing()">Red🖊️</button>
+<!--<div id="imageModal" class="modal">-->
+<!--  <span class="close-btn" onclick="closeModal()">&times;</span>-->
+<!--  <div class="modal-content">-->
+<!--    <img id="modalImage" src="" alt="Preview" style="display: none;">-->
+<!--    <video id="videoPlayer" controls style="display: none;">-->
+<!--      <source id="modalVideoSource" src="" type="video/mp4">-->
+<!--      Your browser does not support the video tag.-->
+<!--    </video>-->
+<!--    <canvas id="drawCanvas"></canvas>-->
+<!--    <button id="penToggleBtn" onclick="toggleDrawing()">Red🖊️</button>-->
+<!--  </div>-->
+<!--</div>-->
+
+  <!-- Modal Container -->
+
+<div id="imageModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50" style="display: none;">
+  <div class="bg-white rounded-xl shadow-lg flex flex-col md:flex-row w-full max-w-[1050px] max-h-[90vh] p-4 md:p-6 overflow-auto relative">
+
+    <!-- Close Button -->
+    <span class="absolute top-3 right-4 text-2xl font-bold text-gray-700 cursor-pointer" onclick="closeModal()">&times;</span>
+
+    <!-- Left Side: Media + Canvas -->
+    <div class="flex-1 relative flex flex-col items-center justify-center p-4 border-r border-gray-300 min-w-[300px]">
+      <img id="modalImage" src="" alt="Preview" class="max-h-[400px] mb-4 hidden rounded-lg shadow" />
+      <video id="videoPlayer" controls class="max-h-[400px] mb-4 hidden rounded-lg shadow">
+        <source id="modalVideoSource" src="" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+
+      <div class="w-full relative">
+        <canvas id="drawCanvas" class="border border-dashed border-gray-400 rounded-lg w-full h-[300px]"></canvas>
+        <button id="penToggleBtn" onclick="toggleDrawing()">Red 🖊️</button>
+      </div>
+    </div>
+
+    <!-- Right Side: Comment Section -->
+    <div class="w-full md:w-1/3 flex flex-col px-4 mt-6 md:mt-0">
+      <label for="commentBox" class="text-gray-700 font-semibold mb-2">Comments</label>
+      <textarea id="commentBox"
+                class="w-full h-48 border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"
+                placeholder="Write your comments here..."></textarea>
+      <button onclick="saveComment()"
+              class="mt-4 bg-red-800 hover:bg-red-700 text-white px-4 py-2 rounded-lg shadow transition">
+        Save Comment
+      </button>
+    </div>
   </div>
 </div>
-
 </main>
 
 
@@ -824,7 +935,7 @@ function formatTime(seconds) {
 
             const base64Image = tempCanvas.toDataURL("image/jpeg");
 
-            fetch('/save_edited_image', {
+            fetch('/save_edited_image/'+ currentPatient.patient_name, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -967,8 +1078,12 @@ function formatTime(seconds) {
     });
  }
 
- function loadPatientData(patientId) {
-    fetch(`/get_patient/${patientId}`)
+ function loadPatientData(patientId,appointment_date) {
+    let url = `/get_patient/${patientId}`;
+     if (appointment_date) {
+        url += `?appointment_date=${encodeURIComponent(appointment_date)}`;
+    }
+    fetch(url)
         .then(response => response.json())
         .then(data => {
             if (data && data.status === 'success') {
@@ -1033,7 +1148,15 @@ function formatTime(seconds) {
 
  document.addEventListener('DOMContentLoaded', () => {
     const pid = getQueryParam('patient_id');
-    if (pid) loadPatientData(pid);
+    const appointment_date= getQueryParam('appointment_date');
+    if (pid){
+      loadPatientData(pid,appointment_date);
+    }else
+    {
+       alert("Invalid patient");
+     }
+
+
  });
 
  window.addEventListener('beforeunload', () => {
