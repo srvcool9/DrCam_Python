@@ -87,6 +87,8 @@ LEFT JOIN patient_history t
 GROUP BY p.patientId, p.appointmentId, p.patientName;
     '''
 
+
+
     GET_LAST_APPOINTMENT = '''
         SELECT * FROM patient_history ph
         WHERE ph.patientId = ?
@@ -99,13 +101,13 @@ GROUP BY p.patientId, p.appointmentId, p.patientName;
     '''
     GET_ALL_PATIENT_IMAGES_BY_APPOINTMENT = '''
             
-            select distinct imageBase64
-            from patient_images pi 
-            inner join patients p  
-            on p.patientId =pi.patientId
-            inner join patient_history ph 
-            on ph.patientId =p.patientId 
-            where p.patientId  = ? and ph.appointmentDate = ?
+            SELECT DISTINCT imageBase64
+            FROM patient_images pi
+            INNER JOIN patient_history ph ON ph.id  = pi.historyId 
+            INNER JOIN patients p on p.patientId  = ph.patientId  
+            WHERE p.patientId = ?
+             AND DATE(ph.appointmentDate) = DATE(?)
+
         '''
 
 

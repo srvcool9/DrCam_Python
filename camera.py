@@ -334,9 +334,18 @@ def register_camera(app):
 
      return jsonify({'images': images_list})
 
+
+ @app.route('/get_image_comment/<filename>')
+ def get_image_comment(filename):
+     db = DatabaseService()
+     image = db.query_by_column('patient_images', 'imageBase64', filename, PatientImagesModel.from_map)
+     if image and image.comment:
+         return jsonify({'comment': image.comment})
+     return jsonify({'comment': ''})
+
  @app.route('/get_patient_id_name/<string:patient_id>', methods=['GET'])
  def get_patient_details(patient_id):
-     patient=db.query_by_column('patients','appointmentId',patient_id,PatientsModel.from_map)
+     patient=db.query_by_column('patients','patientId',patient_id,PatientsModel.from_map)
      return jsonify({'patient_id': patient.patient_id,'patient_name':patient.patient_name})
 
  @app.route('/capture_photo/<string:public_flag>/<string:patient_name>', methods=['POST'])
@@ -367,9 +376,27 @@ def register_camera(app):
 
     return {'status': 'fail'}, 500
 
+ @app.route('/save_comment_image/<string:file_name>', methods=['POST'])
+ def save_image_comment(file_name):
+     data = request.get_json()
+     comment = data.get('comment')
+     try:
+      if (comment):
+         patient_image = db.query_by_column('patient_images', 'imageBase64', file_name,
+                                            PatientImagesModel.from_map)
+         if patient_image:
+             patient_image.comment = comment
+             db.update(patient_image)
+             return jsonify({'status': 'ok'})
+
+     except Exception as e:
+         print("❌ Error saving comment image:", e)
+         return jsonify({'status': 'fail', 'error': str(e)}), 500
+
  @app.route('/save_edited_image/<string:patient_name>', methods=['POST'])
  def save_edited_image(patient_name):
      data = request.get_json()
+     comment=data.get('comment')
      image_data = data.get('image_data')
      original_filename = data.get('original_filename')
      jpg_index = original_filename.lower().find('.jpg')
@@ -377,6 +404,7 @@ def register_camera(app):
          original_filename = original_filename[:jpg_index + 4]
      if not image_data or not original_filename:
          return jsonify({'status': 'fail', 'reason': 'missing_data'}), 400
+
 
      try:
          # Decode base64 string
@@ -588,6 +616,7 @@ def register_camera(app):
          data = request.get_json(silent=True) or {}
          patient_id = data.get('patient_id')
          patient_name = data.get('patient_name')
+         appointment_id=data.get('appointment_id')
 
          if not patient_id or not patient_name:
              return jsonify({"error": "patient_id and patient_name are required"}), 400
@@ -598,6 +627,7 @@ def register_camera(app):
          # Create one history row for this call (use None for id so DB autogenerates it)
          patient_history = PatientHistoryModel(
              None,  # id
+             appointment_id,
              patient_id,
              datetime.now(),
              datetime.now()

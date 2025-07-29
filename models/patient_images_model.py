@@ -1,10 +1,11 @@
 class PatientImagesModel:
-    def __init__(self, image_id=None, patient_id=None, history_id=None, image_base64="", created_on=""):
+    def __init__(self, image_id=None, patient_id=None, history_id=None, image_base64="", created_on="", comment=""):
         self.image_id = image_id
         self.patient_id = patient_id
         self.history_id = history_id
         self.image_base64 = image_base64
         self.created_on = created_on
+        self.comment = comment  # ✅ Added
 
     def to_map(self):
         return {
@@ -12,7 +13,8 @@ class PatientImagesModel:
             "patientId": self.patient_id,
             "historyId": self.history_id,
             "imageBase64": self.image_base64,
-            "createdOn": self.created_on
+            "createdOn": self.created_on,
+            "comment": self.comment  # ✅ Added
         }
 
     @staticmethod
@@ -22,7 +24,8 @@ class PatientImagesModel:
             patient_id=data.get("patientId"),
             history_id=data.get("historyId"),
             image_base64=data.get("imageBase64", ""),
-            created_on=data.get("createdOn", "")
+            created_on=data.get("createdOn", ""),
+            comment=data.get("comment", "")  # ✅ Added
         )
 
     @staticmethod

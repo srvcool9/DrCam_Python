@@ -47,6 +47,7 @@ class DatabaseService:
             self.initialize_schema()
         else:
             print(f"Database exists: {self.db_path}")
+            self.migrate_schema()  # ✅ Added schema migration step
 
     def get_connection(self):
         conn = sqlite3.connect(str(self.db_path), check_same_thread=False)
@@ -88,22 +89,15 @@ class DatabaseService:
         return last_id
 
     def bulk_insert(self, models):
-        """Bulk insert a list of models into the database."""
         if not models:
             return
 
         conn = self.get_connection()
         cursor = conn.cursor()
-
-        # Get the first model's table name and column names
         table_name = models[0].get_table_name()
         columns = models[0].to_map().keys()
         placeholders = ', '.join(['?'] * len(columns))
-
-        # Prepare a list of tuples for the bulk insert
         values = [tuple(model.to_map().values()) for model in models]
-
-        # Insert all the rows in a single query
         query = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({placeholders})"
         cursor.executemany(query, values)
         conn.commit()
@@ -159,10 +153,8 @@ class DatabaseService:
         cursor = conn.execute(query, args)
         row = cursor.fetchone()
         conn.close()
-
         if row is None:
             return 0
-
         row_dict = dict(row)
         val = list(row_dict.values())[0]
         return val if val is not None else 0
@@ -173,3 +165,29 @@ class DatabaseService:
         row = cursor.fetchone()
         conn.close()
         return int(row[0]) if row and row[0] is not None else 0
+
+    # ✅✅✅ Migration logic starts here
+
+    def migrate_schema(self):
+        """Perform schema updates like adding missing columns."""
+        conn = self.get_connection()
+        try:
+            self.add_column_if_missing(conn, "patient_images", "comment", "TEXT")
+        except Exception as e:
+            print(f"Migration failed: {e}")
+        finally:
+            conn.close()
+
+    def column_exists(self, conn, table: str, column: str) -> bool:
+        """Check if a column exists in a given table."""
+        cursor = conn.execute(f"PRAGMA table_info({table})")
+        return any(row["name"] == column for row in cursor.fetchall())
+
+    def add_column_if_missing(self, conn, table: str, column: str, coltype: str):
+        """Safely add a column to a table if it doesn't already exist."""
+        if not self.column_exists(conn, table, column):
+            print(f"Adding missing column '{column}' to table '{table}'")
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {coltype}")
+            conn.commit()
+        else:
+            print(f"Column '{column}' already exists in table '{table}'")

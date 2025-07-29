@@ -31,7 +31,7 @@
             color: #3399cc;
         }
         .logout-btn {
-            background-color: #007B8F;
+
             color: white;
             border: none;
             padding: 8px 16px;
@@ -76,19 +76,29 @@
 </head>
 <body>
 
-<nav class="navbar">
-    <div class="brand" style="color: #3399cc;">
-        <strong>{{ agency_name }}</strong>
+<!-- Navigation Bar -->
+<nav class="flex justify-between items-center px-6 py-4 bg-white shadow-md">
+  <div class="flex items-center space-x-3">
+    <div class="bg-red-800 text-white rounded-full w-10 h-10 flex items-center justify-center text-xl font-semibold">
+      {{ agency_name[0] }}
     </div>
-    <div class="nav-links">
-        <a href="/dashboard">Home</a>
-        <a href="/camera" >Camera</a>
-        <a href="/patient_history">Patient History</a>
-        <a href="/setting">Settings</a>
-    </div>
-    <div class="user-actions">
-        <button class="logout-btn" onclick="window.location.href = '/'">Logout</button>
-    </div>
+    <h1 class="text-2xl font-extrabold text-red-800 tracking-tight">
+      {{ agency_name }}
+    </h1>
+  </div>
+  <div class="flex space-x-6 text-gray-700 font-medium">
+    <a href="/dashboard" class="hover:text-red-800 transition">Home</a>
+    <a href="/patient_registration" class="hover:text-red-800 transition">Patient Registration</a>
+    <a href="/patient_history" class="hover:text-red-800 transition">Patient History</a>
+    <a href="/setting" class="hover:text-red-800 transition">Settings</a>
+  </div>
+  <div>
+    <button
+      onclick="window.location.href = '/'"
+      class="bg-red-800 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded-lg shadow-sm transition duration-300">
+      Logout
+    </button>
+  </div>
 </nav>
 
 <!-- Image Count Input (Optional) -->
@@ -110,7 +120,7 @@
 
 <!-- Download Button -->
 <div style="text-align: right; padding: 20px;">
-    <button id="download-btn" class="logout-btn">Download Pdf</button>
+    <button id="download-btn" class="logout-btn bg-red-800">Download Pdf</button>
 </div>
 
 <script>
