@@ -7,6 +7,7 @@ import re
 import ffmpeg
 from PIL import Image
 from io import BytesIO
+import time
 
 
 from flask import Flask,send_file, render_template, Response, request, send_from_directory, jsonify
@@ -35,7 +36,8 @@ logging.basicConfig(level=logging.DEBUG)
 db = DatabaseService()
 toaster = ToastNotifier()
 patientData = PatientsModel()
-
+recording_is_flipped = False
+recording_rotation_angle = 0
 recording = False
 out = None
 zoom = 1.0
@@ -46,6 +48,8 @@ contrast = 0
 exposure = 0
 white_balance = 0
 frame_rate=0
+width, height = 640, 480
+rec_rotation_state=0
 
 # CAPTURE_DIR = 'static/captures'
 # os.makedirs(CAPTURE_DIR, exist_ok=True)
@@ -57,7 +61,62 @@ videos_file_names=[]
 prefilled_image_list=[]
 prefilled_videos_list=[]
 
+
+
 def register_camera(app):
+ def video_recording_loop():
+        global cam, recording, out, recording_is_flipped, recording_rotation_angle
+
+        # Wait for the first frame before starting
+        ret, frame = cam.read()
+        if not ret:
+            print("No frame from camera. Cannot start recording.")
+            return
+
+        # Get FPS from camera (fallback if not available)
+        fps = cam.get(cv2.CAP_PROP_FPS)
+        if fps <= 0 or fps is None:
+            fps = 30.0  # safe default
+        print(f"🎥 Recording at {fps} FPS")
+
+        # Get size from first frame
+        height, width = frame.shape[:2]
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # or XVID for .avi
+        out = cv2.VideoWriter("output.mp4", fourcc, fps, (width, height))
+
+        frame_interval = 1.0 / fps
+        last_time = time.time()
+
+        while recording and cam.isOpened():
+            ret, frame = cam.read()
+            if not ret:
+                break
+
+            # Apply flip if needed
+            if recording_is_flipped:
+                frame = cv2.flip(frame, 1)
+
+            # Apply rotation if needed
+            if recording_rotation_angle == 90:
+                frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+            elif recording_rotation_angle == 180:
+                frame = cv2.rotate(frame, cv2.ROTATE_180)
+            elif recording_rotation_angle == 270:
+                frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
+
+            # Write frame
+            out.write(frame)
+
+            # Maintain timing
+            now = time.time()
+            elapsed = now - last_time
+            if elapsed < frame_interval:
+                time.sleep(frame_interval - elapsed)
+            last_time = time.time()
+
+        out.release()
+        print("Recording stopped")
+
  def initialize_camera():
         import time
         global cam, exposure, white_balance, zoom, brightness, contrast, frame_rate
@@ -255,14 +314,30 @@ def register_camera(app):
          frame_rate = 20.0
      return ('', 204)
 
- @app.route('/start_recording/<string:public_flag>/<string:patient_name>', methods=['POST'])
- def start_recording(public_flag, patient_name):
+ @app.route('/start_recording/<string:public_flag>/<string:patient_name>/<string:isFlipped>/<int:rotationAngle>', methods=['POST'])
+ def start_recording(public_flag, patient_name , isFlipped,rotationAngle):
      global recording, out, cam, videos_path_list, videos_file_names
+     global recording_is_flipped, recording_rotation_angle
+
      with lock:
          if cam and cam.isOpened():
+             recording_is_flipped =  (isFlipped.lower() == "true")
+             recording_rotation_angle = rotationAngle
+
+             # Get original camera frame size
+             orig_width = int(cam.get(cv2.CAP_PROP_FRAME_WIDTH))
+             print(orig_width)
+
+             orig_height = int(cam.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+             # Adjust output dimensions if rotation is 90 or 270
+             if rotationAngle in [90, 270, -90, -270]:
+                 width, height = orig_height, orig_width
+
+             else:
+                 width, height = orig_width, orig_height
              fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-             width = int(cam.get(cv2.CAP_PROP_FRAME_WIDTH))
-             height = int(cam.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
              timestamp = datetime.now().strftime("%d_%m_%Y_%H%M%S%f")
              filename = f"vid_{timestamp}.mp4"
 
@@ -279,12 +354,16 @@ def register_camera(app):
              os.makedirs(path, exist_ok=True)
              out = cv2.VideoWriter(full_path, fourcc, 20.0, (width, height))
              recording = True
-             print(f" Started recording: {full_path}")
+             thread = threading.Thread(target=video_recording_loop, daemon=True)
+             thread.start()
+             print(
+                 f"Recording started: {full_path}, flipped={recording_is_flipped}, rotation={recording_rotation_angle}")
      return ('', 204)
 
  @app.route('/stop_recording', methods=['POST'])
  def stop_recording():
      global recording, out, videos_path_list
+     global recording_is_flipped, recording_rotation_angle
      with lock:
          recording = False
          if out:
@@ -348,14 +427,23 @@ def register_camera(app):
      patient=db.query_by_column('patients','patientId',patient_id,PatientsModel.from_map)
      return jsonify({'patient_id': patient.patient_id,'patient_name':patient.patient_name})
 
- @app.route('/capture_photo/<string:public_flag>/<string:patient_name>', methods=['POST'])
- def capture_photo(public_flag,patient_name):
+ @app.route('/capture_photo/<string:public_flag>/<string:patient_name>/<string:isFlipped>/<int:rotationAngle>', methods=['POST'])
+ def capture_photo(public_flag,patient_name,isFlipped, rotationAngle):
     global cam
     global images_list
     with lock:
         if cam and cam.isOpened():
             ret, frame = cam.read()
             if ret:
+                if isFlipped == 'true':
+                    frame = cv2.flip(frame, 1)
+                if rotationAngle != 0:
+                    (h, w) = frame.shape[:2]
+                    center = (w // 2, h // 2)
+                    M = cv2.getRotationMatrix2D(center, -rotationAngle, 1.0)
+                    frame = cv2.warpAffine(frame, M, (w, h))
+
+
                 timestamp = datetime.now().strftime("%d_%m_%Y_%H%M%S%f")
                 filename = f"img_{timestamp}.jpg"
 

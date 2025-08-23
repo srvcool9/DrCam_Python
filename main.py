@@ -38,6 +38,7 @@ db = DatabaseService()
 def start_flask():
     app.run(debug=True, use_reloader=False, port=5000)
 
+
 # # Entry point
 # if __name__ == '__main__':
 #

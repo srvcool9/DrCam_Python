@@ -639,7 +639,6 @@
 
     function flipCamera() {
         isFlipped = !isFlipped;
-        isFlipped = !isFlipped;
         updateTransform();
     }
 
@@ -876,7 +875,7 @@ function formatTime(seconds) {
         patientId = rawPatientId === "" ? null : rawPatientId;
     }
 
-    const captureUrl = `/capture_photo/${publicFlag}/${encodeURIComponent(patientName)}`;
+    const captureUrl = `/capture_photo/${publicFlag}/${encodeURIComponent(patientName)}/${isFlipped}/${rotationAngle}`;
 
     const captureButton = document.getElementById('captureButton');
     if (captureButton) captureButton.disabled = true;
@@ -895,6 +894,12 @@ function formatTime(seconds) {
     let flag = 'true';
     let patientName = 'unknown';
     let patientId = null;
+    let flippedState = 'false'
+
+    if(rotationAngle !== 0){
+       flippedState = 'true';
+    }
+
 
      if (currentPatient.patient_name!== undefined) {
         const rawPatientId = currentPatient.patient_id;
@@ -903,7 +908,7 @@ function formatTime(seconds) {
         patientId = rawPatientId === "" ? null : rawPatientId;
     }
 
-    const startRecordingUrl = `/start_recording/${flag}/${encodeURIComponent(patientName)}`;
+    const startRecordingUrl = `/start_recording/${flag}/${encodeURIComponent(patientName)}/${flippedState}/${rotationAngle}`;
 
     fetch(startRecordingUrl, { method: 'POST' })
         .then(response => {
