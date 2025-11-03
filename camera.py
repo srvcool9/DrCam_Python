@@ -12,7 +12,7 @@ import time
 
 from flask import Flask,send_file, render_template, Response, request, send_from_directory, jsonify
 from plyer import notification
-from pygrabber.dshow_graph import FilterGraph
+
 import cv2
 import threading
 import logging
@@ -21,7 +21,7 @@ from flask import abort
 
 from datetime import datetime
 
-from win10toast import ToastNotifier
+# from win10toast import ToastNotifier
 
 from contants.queries import Queries
 from db_config.database_service import DatabaseService
@@ -34,7 +34,7 @@ from models.profile_model import ProfileModel
 
 logging.basicConfig(level=logging.DEBUG)
 db = DatabaseService()
-toaster = ToastNotifier()
+# toaster = ToastNotifier()
 patientData = PatientsModel()
 recording_is_flipped = False
 recording_rotation_angle = 0
@@ -60,6 +60,11 @@ videos_path_list=[]
 videos_file_names=[]
 prefilled_image_list=[]
 prefilled_videos_list=[]
+
+import platform
+if platform.system() == "Windows":
+    from ctypes import windll
+    from pygrabber.dshow_graph import FilterGraph
 
 
 
@@ -608,7 +613,7 @@ def register_camera(app):
       patient= PatientsModel(exists.patient_id,appointmentId,patientName,gender,dateOfBirth,phone, address)
       db.updatePatient(patient)
       save_patient_history(patient)
-      toaster.show_toast("New Notification", "Patient details updated successfully!", duration=5)
+      # toaster.show_toast("New Notification", "Patient details updated successfully!", duration=5)
     else:
         patient = PatientsModel(None, appointmentId, patientName, gender,dateOfBirth, phone, address)
         persist_id= db.insert(patient)
@@ -616,7 +621,7 @@ def register_camera(app):
         if(patients):
             save_patient_history(patients)
             print(patients)
-        toaster.show_toast("New Notification", "Patient details registered successfully", duration=5)
+        # toaster.show_toast("New Notification", "Patient details registered successfully", duration=5)
 
 
     return jsonify({'status': 'success'})
@@ -944,7 +949,7 @@ def register_camera(app):
  def _get_documents_path():
     """Get Windows 'Documents' folder using SHGetKnownFolderPath"""
     try:
-        from ctypes import windll, POINTER, byref
+        #from ctypes import windll, POINTER, byref
         from uuid import UUID
         import ctypes.wintypes
 

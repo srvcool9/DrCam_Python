@@ -3,10 +3,10 @@ from flask import render_template, request, jsonify
 from plyer import notification
 from db_config.database_service import DatabaseService
 from models.profile_model import ProfileModel
-from win10toast import ToastNotifier
+# from win10toast import ToastNotifier
 
 db=DatabaseService()
-toaster = ToastNotifier()
+# toaster = ToastNotifier()
 
 def register_setting(app):
  @app.route("/setting")
@@ -43,10 +43,10 @@ def register_setting(app):
              print(persist)
              doctor_profile = ProfileModel(1,agency_name, contact_number, email, password)
              db.update(doctor_profile)
-             toaster.show_toast("New Notification", "Profile updated successfully!", duration=5)
+             # toaster.show_toast("New Notification", "Profile updated successfully!", duration=5)
              return jsonify({"status": "updated"})
         else:
             doctor_profile= ProfileModel(1,agency_name,contact_number,email,password)
             db.insert(doctor_profile)
-            toaster.show_toast("New Notification", "Profile saved successfully!", duration=5)
+            # toaster.show_toast("New Notification", "Profile saved successfully!", duration=5)
             return jsonify({"status": "saved"})
