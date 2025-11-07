@@ -9,7 +9,7 @@ from PIL import Image
 from io import BytesIO
 import time
 
-
+from _ctypes import byref
 from flask import Flask,send_file, render_template, Response, request, send_from_directory, jsonify
 from plyer import notification
 
@@ -143,7 +143,8 @@ def register_camera(app):
 
         # Prioritize "H1600 Cam"
         for name in devices:
-          if "H1600 Cam" in name:
+          #if "H1600 Cam" in name:
+          if "Integrated Webcam" in name:
             target_device_name = name
             break
 

@@ -190,7 +190,7 @@
     }
 
     .modal-content {
-        background: #fff;
+<!--        background: #fff;-->
         padding: 20px;
         border-radius: 8px;
         max-width: 100%;
@@ -223,17 +223,20 @@
 }
      #penToggleBtn {
     position: absolute;
-    top: 0;
-    left: 0px;
+    bottom: 0;
+    left: 50%;
     z-index: 20;
     padding: 0.4rem 0.8rem;
     font-size: 1rem;
-    border-radius: 6px;
+    border-radius: 30px;
     border: none;
     color: #fff;
     cursor: pointer;
-    width: 65px;
+    width: 100px;
     background-color: #e74c3c;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
   }
 
   @media (max-width: 1200px) {
@@ -531,6 +534,19 @@
       <button id="generatePdfButton" class="flex-1 bg-red-800 text-white py-2 rounded-lg hover:bg-red-700">Generate PDF</button>
     </div>
   </aside>
+
+  <div id="imageModal" class="modal">
+  <span class="close-btn" onclick="closeModal()">&times;</span>
+  <div class="modal-content">
+    <img id="modalImage" src="" alt="Preview" style="display: none;">
+    <video id="videoPlayer" controls style="display: none;">
+      <source id="modalVideoSource" src="" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
+    <canvas id="drawCanvas"></canvas>
+    <button id="penToggleBtn" onclick="toggleDrawing()">Red <span>🖊</span>️</button>
+  </div>
+</div>
 
 </main>
 
