@@ -8,6 +8,7 @@ class Queries:
         );
     '''
 
+
     DOCTOR_PROFILE = '''
         CREATE TABLE IF NOT EXISTS doctor_profile (
             id INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -50,6 +50,7 @@ white_balance = 0
 frame_rate=0
 width, height = 640, 480
 rec_rotation_state=0
+recording_with_thread = False
 
 # CAPTURE_DIR = 'static/captures'
 # os.makedirs(CAPTURE_DIR, exist_ok=True)
@@ -69,58 +70,75 @@ if platform.system() == "Windows":
 
 
 def register_camera(app):
+
  def video_recording_loop():
-        global cam, recording, out, recording_is_flipped, recording_rotation_angle
+     global cam, recording, out, recording_is_flipped, recording_rotation_angle, recording_with_thread
 
-        # Wait for the first frame before starting
-        ret, frame = cam.read()
-        if not ret:
-            print("No frame from camera. Cannot start recording.")
-            return
+     setting = load_camera_settings()
+     if setting:
+         recording_rotation_angle=setting.get('rotation_angle')
+     # Wait until camera is ready and out has been created by start_recording
+     if cam is None or not cam.isOpened():
+         print("No camera available for recording.")
+         return
 
-        # Get FPS from camera (fallback if not available)
-        fps = cam.get(cv2.CAP_PROP_FPS)
-        if fps <= 0 or fps is None:
-            fps = 30.0  # safe default
-        print(f"🎥 Recording at {fps} FPS")
+     # Ensure the writer (out) has been created by start_recording
+     wait_start = time.time()
+     while out is None and time.time() - wait_start < 3.0:
+         time.sleep(0.01)
+     if out is None:
+         print("VideoWriter not initialized by start_recording(), aborting recording loop.")
+         return
 
-        # Get size from first frame
-        height, width = frame.shape[:2]
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # or XVID for .avi
-        out = cv2.VideoWriter("output.mp4", fourcc, fps, (width, height))
+     recording_with_thread = True
+     # Attempt to find FPS (fall back to 20.0)
+     fps = cam.get(cv2.CAP_PROP_FPS) or 20.0
+     frame_interval = 1.0 / fps
+     last_time = time.time()
 
-        frame_interval = 1.0 / fps
-        last_time = time.time()
+     try:
+         while recording and cam.isOpened():
+             ret, frame = cam.read()
+             if not ret:
+                 break
 
-        while recording and cam.isOpened():
-            ret, frame = cam.read()
-            if not ret:
-                break
+             # Apply flip if needed
+             if recording_is_flipped:
+                 frame = cv2.flip(frame, 1)
 
-            # Apply flip if needed
-            if recording_is_flipped:
-                frame = cv2.flip(frame, 1)
+             # # Apply rotation if needed
+             if recording_rotation_angle == 90:
+                 frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+             elif recording_rotation_angle == 180:
+                 frame = cv2.rotate(frame, cv2.ROTATE_180)
+             elif recording_rotation_angle == 270:
+                 frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
 
-            # Apply rotation if needed
-            if recording_rotation_angle == 90:
-                frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
-            elif recording_rotation_angle == 180:
-                frame = cv2.rotate(frame, cv2.ROTATE_180)
-            elif recording_rotation_angle == 270:
-                frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
+             # Ensure frame matches writer size (some backends require exact dimensions)
+             # out expects (width, height) that were set in start_recording()
+             try:
+                 out.write(frame)
+             except Exception as e:
+                 print("Failed to write frame to out:", e)
+                 # Try resizing to expected size if out was created with a different shape
+                 # But we don't have direct access to out's expected dims here. Optionally handle if necessary.
 
-            # Write frame
-            out.write(frame)
-
-            # Maintain timing
-            now = time.time()
-            elapsed = now - last_time
-            if elapsed < frame_interval:
-                time.sleep(frame_interval - elapsed)
-            last_time = time.time()
-
-        out.release()
-        print("Recording stopped")
+             # Maintain timing (reduce busy loop)
+             now = time.time()
+             elapsed = now - last_time
+             if elapsed < frame_interval:
+                 time.sleep(frame_interval - elapsed)
+             last_time = time.time()
+     finally:
+         # Release writer here if still set by start_recording
+         try:
+             if out:
+                 out.release()
+         except Exception:
+             pass
+         out = None
+         recording_with_thread = False
+         print("Recording stopped (thread exit).")
 
  def initialize_camera():
         import time
@@ -143,15 +161,14 @@ def register_camera(app):
 
         # Prioritize "H1600 Cam"
         for name in devices:
-          #if "H1600 Cam" in name:
-          if "Integrated Webcam" in name:
+          if "H1600 Cam" in name:
             target_device_name = name
             break
 
         # If H1600 cam is not found, check for "VMware Virtual USB Video Device"
         if target_device_name is None:
             for name in devices:
-                if "VMware Virtual USB Video Device" in name:
+                if "Integrated Webcam" in name:
                     target_device_name = name
                     break
 
@@ -198,13 +215,47 @@ def register_camera(app):
             white_balance = 0.0
             frame_rate = 20.0
 
-        # exposure = cam.get(cv2.CAP_PROP_EXPOSURE)
-        # white_balance = cam.get(cv2.CAP_PROP_WHITE_BALANCE_BLUE_U)
-        #
-        # if exposure == -1:  # Property unsupported, set default 0
-        #     exposure = 0
-        # if white_balance == -1:
-        #     white_balance = 0
+ def generate_frames():
+     global cam, recording, out, zoom, brightness, contrast, recording_with_thread,recording_rotation_angle
+
+     if cam is None or not cam.isOpened():
+         yield (b'--frame\r\n'
+                b'Content-Type: text/plain\r\n\r\nNo compatible camera (H1600 Cam) found.\r\n\r\n')
+         return
+
+     while True:
+         with lock:
+             success, frame = cam.read()
+             if not success:
+                 break
+
+             frame = apply_zoom(frame, zoom)
+             alpha = 1.0 + contrast / 100.0  # Contrast control
+             beta = brightness
+             frame = cv2.convertScaleAbs(frame, alpha=alpha, beta=beta)
+             setting = load_camera_settings()
+             if setting:
+                 recording_rotation_angle = setting.get('rotation_angle')
+
+             if recording_rotation_angle == 90:
+                 frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+             elif recording_rotation_angle == 180:
+                 frame = cv2.rotate(frame, cv2.ROTATE_180)
+             elif recording_rotation_angle == 270:
+                 frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
+
+             # If you are using a recording thread, don't write here (avoid double writes)
+             if recording and out and not recording_with_thread:
+                 try:
+                     out.write(frame)
+                 except Exception as e:
+                     print("Warning: failed to write frame in generate_frames():", e)
+
+             _, buffer = cv2.imencode('.jpg', frame)
+             frame_bytes = buffer.tobytes()
+
+         yield (b'--frame\r\n'
+                b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
 
  def apply_zoom(frame, zoom_factor):
     if zoom_factor == 1.0:
@@ -216,34 +267,8 @@ def register_camera(app):
     cropped = frame[y1:y1 + new_h, x1:x1 + new_w]
     return cv2.resize(cropped, (w, h))
 
- def generate_frames():
-    global cam, recording, out, zoom, brightness,contrast
 
-    if cam is None or not cam.isOpened():
-        yield (b'--frame\r\n'
-               b'Content-Type: text/plain\r\n\r\nNo compatible camera (H1600 Cam) found.\r\n\r\n')
-        return
 
-    while True:
-        with lock:
-            success, frame = cam.read()
-            if not success:
-                break
-
-            frame = apply_zoom(frame, zoom)
-            alpha = 1.0 + contrast / 100.0  # Contrast control (1.0 is no change)
-            beta = brightness  # Brightness control (0 is no change)
-            frame = cv2.convertScaleAbs(frame, alpha=alpha, beta=beta)
-            #frame = cv2.convertScaleAbs(frame, alpha=1, beta=brightness)
-
-            if recording and out:
-                out.write(frame)
-
-            _, buffer = cv2.imencode('.jpg', frame)
-            frame_bytes = buffer.tobytes()
-
-        yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
 
  @app.route('/camera')
  def camera():
@@ -320,28 +345,31 @@ def register_camera(app):
          frame_rate = 20.0
      return ('', 204)
 
- @app.route('/start_recording/<string:public_flag>/<string:patient_name>/<string:isFlipped>/<int:rotationAngle>', methods=['POST'])
- def start_recording(public_flag, patient_name , isFlipped,rotationAngle):
+ # ---- start_recording: create writer with rotated dimensions and start thread ----
+ @app.route('/start_recording/<string:public_flag>/<string:patient_name>/<string:isFlipped>/<int:rotationAngle>',
+            methods=['POST'])
+ def start_recording(public_flag, patient_name, isFlipped, rotationAngle):
      global recording, out, cam, videos_path_list, videos_file_names
-     global recording_is_flipped, recording_rotation_angle
+     global recording_is_flipped, recording_rotation_angle, recording_with_thread
 
      with lock:
          if cam and cam.isOpened():
-             recording_is_flipped =  (isFlipped.lower() == "true")
-             recording_rotation_angle = rotationAngle
+             recording_is_flipped = (isFlipped.lower() == "true")
+             setting = load_camera_settings()
+             if setting:
+                 recording_rotation_angle = setting.get('rotation_angle')
+             logging.info(f"recording at angle: {recording_rotation_angle}")
 
              # Get original camera frame size
-             orig_width = int(cam.get(cv2.CAP_PROP_FRAME_WIDTH))
-             print(orig_width)
+             orig_width = int(cam.get(cv2.CAP_PROP_FRAME_WIDTH)) or 640
+             orig_height = int(cam.get(cv2.CAP_PROP_FRAME_HEIGHT)) or 480
 
-             orig_height = int(cam.get(cv2.CAP_PROP_FRAME_HEIGHT))
-
-             # Adjust output dimensions if rotation is 90 or 270
-             if rotationAngle in [90, 270, -90, -270]:
-                 width, height = orig_height, orig_width
-
+             # Adjust output dimensions if rotation is 90 or 270 (swap)
+             if recording_rotation_angle in [90, 270, -90, -270]:
+                 out_width, out_height = orig_height, orig_width
              else:
-                 width, height = orig_width, orig_height
+                 out_width, out_height = orig_width, orig_height
+
              fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 
              timestamp = datetime.now().strftime("%d_%m_%Y_%H%M%S%f")
@@ -358,30 +386,51 @@ def register_camera(app):
                  videos_path_list.append(full_path)
 
              os.makedirs(path, exist_ok=True)
-             out = cv2.VideoWriter(full_path, fourcc, 20.0, (width, height))
+
+             # Ensure any previous writer is released first
+             if out:
+                 try:
+                     out.release()
+                 except Exception:
+                     pass
+                 out = None
+
+             # Create writer here with correct (width, height) that matches frames after rotation
+             out = cv2.VideoWriter(full_path, fourcc, 20.0, (out_width, out_height))
+
              recording = True
+             # Start the recording thread (thread will use the 'out' created above)
              thread = threading.Thread(target=video_recording_loop, daemon=True)
              thread.start()
              print(
                  f"Recording started: {full_path}, flipped={recording_is_flipped}, rotation={recording_rotation_angle}")
      return ('', 204)
 
+ # ---- stop_recording: ensure flags and writer are cleaned ----
  @app.route('/stop_recording', methods=['POST'])
  def stop_recording():
      global recording, out, videos_path_list
-     global recording_is_flipped, recording_rotation_angle
+     global recording_is_flipped, recording_rotation_angle, recording_with_thread
      with lock:
          recording = False
-         if out:
-             out.release()
-             out = None
-             print(" Recording stopped.")
 
-         # Convert last recorded video to browser-compatible format
+         # Wait briefly for thread to finish and release writer
+         wait_start = time.time()
+         while recording_with_thread and time.time() - wait_start < 2.0:
+             time.sleep(0.05)
+
+         if out:
+             try:
+                 out.release()
+             except Exception as e:
+                 print("Error releasing writer on stop:", e)
+             out = None
+             print(" Recording stopped and writer released.")
+
+         # Then convert last recorded video as you already do
          if videos_path_list:
              original_path = videos_path_list[-1]
              converted_path = original_path.replace('.mp4', '_converted.mp4')
-
              try:
                  ffmpeg.input(original_path).output(
                      converted_path,
@@ -435,7 +484,7 @@ def register_camera(app):
 
  @app.route('/capture_photo/<string:public_flag>/<string:patient_name>/<string:isFlipped>/<int:rotationAngle>', methods=['POST'])
  def capture_photo(public_flag,patient_name,isFlipped, rotationAngle):
-    global cam
+    global cam,recording_rotation_angle
     global images_list
     with lock:
         if cam and cam.isOpened():
@@ -443,10 +492,10 @@ def register_camera(app):
             if ret:
                 if isFlipped == 'true':
                     frame = cv2.flip(frame, 1)
-                if rotationAngle != 0:
+                if recording_rotation_angle != 0:
                     (h, w) = frame.shape[:2]
                     center = (w // 2, h // 2)
-                    M = cv2.getRotationMatrix2D(center, -rotationAngle, 1.0)
+                    M = cv2.getRotationMatrix2D(center, -recording_rotation_angle, 1.0)
                     frame = cv2.warpAffine(frame, M, (w, h))
 
 
@@ -974,14 +1023,16 @@ def register_camera(app):
 
  @app.route('/save_settings', methods=['POST'])
  def save_camera_settings():
-     global zoom, brightness, contrast, exposure, white_balance, frame_rate
+     global zoom, brightness, contrast, exposure, white_balance, frame_rate,recording_rotation_angle
+     payload = request.get_json()
      settings = CameraSettingsModel(
          zoom=zoom,
          brightness=brightness,
          contrast=contrast,
          exposure=exposure,
          white_balance=white_balance,
-         frame_rate=frame_rate
+         frame_rate=frame_rate,
+         rotation_angle=payload.get('rotation_angle') if payload.get('rotation_angle') else 0
      )
      existing = db.query_by_column(settings.get_table_name(), "id", 1, CameraSettingsModel.from_map)
 
@@ -992,8 +1043,9 @@ def register_camera(app):
 
      return jsonify({"status": "success", "message": "Camera settings saved"})
 
+
  def load_camera_settings():
-     global zoom, brightness, contrast, exposure, white_balance, frame_rate
+     global zoom, brightness, contrast, exposure, white_balance, frame_rate,recording_rotation_angle
      db = DatabaseService()
 
      settings = db.query_by_column("camera_settings", "id", 1, CameraSettingsModel.from_map)
@@ -1006,6 +1058,7 @@ def register_camera(app):
          exposure = settings.exposure
          white_balance = settings.white_balance
          frame_rate = settings.frame_rate
+         recording_rotation_angle=settings.rotation_angle
 
          return settings.to_map()  # ✅ Return dict instead of jsonify
      else:
@@ -1025,6 +1078,52 @@ def register_camera(app):
              "white_balance": white_balance,
              "frame_rate": frame_rate
          }
+
+ from flask import jsonify
+
+ @app.route('/fetch_settings', methods=['GET'])
+ def load_settings():
+     global zoom, brightness, contrast, exposure, white_balance, frame_rate, recording_rotation_angle
+     db = DatabaseService()
+
+     settings = db.query_by_column("camera_settings", "id", 1, CameraSettingsModel.from_map)
+
+     if settings:
+         # Apply saved settings
+         zoom = settings.zoom
+         brightness = settings.brightness
+         contrast = settings.contrast
+         exposure = settings.exposure
+         white_balance = settings.white_balance
+         frame_rate = settings.frame_rate
+         recording_rotation_angle = settings.rotation_angle
+
+         return jsonify({
+             "status": "ok",
+             "settings": settings.to_map()
+         })
+     else:
+         # Apply default values
+         zoom = 1.0
+         brightness = 0
+         contrast = 0
+         exposure = 0.0
+         white_balance = 0.0
+         frame_rate = 20.0
+         recording_rotation_angle = 0
+
+         return jsonify({
+             "status": "default",
+             "settings": {
+                 "zoom": zoom,
+                 "brightness": brightness,
+                 "contrast": contrast,
+                 "exposure": exposure,
+                 "white_balance": white_balance,
+                 "frame_rate": frame_rate,
+                 "rotation_angle": recording_rotation_angle
+             }
+         })
 
  @app.route('/reset_settings', methods=['POST'])
  def reset_camera_settings():

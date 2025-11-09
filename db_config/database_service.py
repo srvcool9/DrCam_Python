@@ -166,13 +166,14 @@ class DatabaseService:
         conn.close()
         return int(row[0]) if row and row[0] is not None else 0
 
-    # ✅✅✅ Migration logic starts here
+
 
     def migrate_schema(self):
         """Perform schema updates like adding missing columns."""
         conn = self.get_connection()
         try:
             self.add_column_if_missing(conn, "patient_images", "comment", "TEXT")
+            self.add_column_if_missing(conn, "camera_settings", "rotation_angle", "INTEGER")
         except Exception as e:
             print(f"Migration failed: {e}")
         finally:

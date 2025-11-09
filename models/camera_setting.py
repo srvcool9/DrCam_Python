@@ -1,5 +1,15 @@
 class CameraSettingsModel:
-    def __init__(self, id=1, zoom=1.0, brightness=0, contrast=0, exposure=0.0, white_balance=0.0, frame_rate=20.0):
+    def __init__(
+        self,
+        id=1,
+        zoom=1.0,
+        brightness=0,
+        contrast=0,
+        exposure=0.0,
+        white_balance=0.0,
+        frame_rate=20.0,
+        rotation_angle=0
+    ):
         self.id = id
         self.zoom = zoom
         self.brightness = brightness
@@ -7,6 +17,7 @@ class CameraSettingsModel:
         self.exposure = exposure
         self.white_balance = white_balance
         self.frame_rate = frame_rate
+        self.rotation_angle = rotation_angle
 
     def to_map(self):
         return {
@@ -16,7 +27,8 @@ class CameraSettingsModel:
             "contrast": self.contrast,
             "exposure": self.exposure,
             "white_balance": self.white_balance,
-            "frame_rate": self.frame_rate
+            "frame_rate": self.frame_rate,
+            "rotation_angle": self.rotation_angle  # ✅ include in map
         }
 
     @staticmethod
@@ -28,7 +40,8 @@ class CameraSettingsModel:
             contrast=data.get("contrast", 0),
             exposure=data.get("exposure", 0.0),
             white_balance=data.get("white_balance", 0.0),
-            frame_rate=data.get("frame_rate", 20.0)
+            frame_rate=data.get("frame_rate", 20.0),
+            rotation_angle=data.get("rotation_angle", 0)
         )
 
     @staticmethod

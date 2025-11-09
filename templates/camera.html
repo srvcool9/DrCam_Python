@@ -339,6 +339,10 @@
         }
     }
 
+    #cameraFeed {
+  transform-origin: center center;
+}
+
 
 </style>
 
@@ -559,9 +563,11 @@
   let rotationAngle = 0;
 
     function updateTransform() {
-        const camera = document.getElementById('cameraFeed');
-        const flip = isFlipped ? "scaleX(-1)" : "scaleX(1)";
-        camera.style.transform = `translate(-50%, -50%) rotate(${rotationAngle}deg) ${flip}`;
+    const camera = document.getElementById('cameraFeed');
+    const flip = isFlipped ? "scaleX(-1)" : "scaleX(1)";
+    console.log("update_transform",rotationAngle);
+
+    camera.style.transition = "transform 0.3s ease"; // smooth animation
     }
 
     function flipCamera() {
@@ -573,10 +579,14 @@
       saveEditedImage();
     }
 
-    function rotateCamera() {
-        rotationAngle = (rotationAngle + 90) % 360;
-        updateTransform();
+    async function rotateCamera() {
+       let rotation = await fetch_last_saved_rotation_angle();
+       rotationAngle = (rotation + 90) % 360;
+       console.log("Rotate:", rotationAngle);
+       await saveSetting(rotationAngle);
+       updateTransform();
     }
+
   // ===== Utility Functions =====
 
 function getQueryParam(name) {
@@ -650,8 +660,9 @@ function formatTime(seconds) {
    });
   }
 
- document.getElementById('save_setting').addEventListener('click', async () => {
-    const zoom = parseFloat(document.getElementById('zoom')?.value || 1);
+  async function saveSetting(rotation_angle){
+   console.log("save setting",rotation_angle);
+   const zoom = parseFloat(document.getElementById('zoom')?.value || 1);
     const brightness = parseInt(document.getElementById('brightness')?.value || 0);
     const contrast = parseInt(document.getElementById('contrast')?.value || 0);
     const exposure = parseFloat(document.getElementById('exposure')?.value || 0);
@@ -664,7 +675,44 @@ function formatTime(seconds) {
         contrast,
         exposure,
         whiteBalance,
-        frameRate
+        frameRate,
+        rotation_angle
+    };
+
+    try {
+        const response = await fetch('/save_settings', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+    } catch (err) {
+        console.error("Error saving settings:", err);
+        alert("Failed to save settings.");
+    }
+  }
+
+
+ document.getElementById('save_setting').addEventListener('click', async () => {
+    const zoom = parseFloat(document.getElementById('zoom')?.value || 1);
+    const brightness = parseInt(document.getElementById('brightness')?.value || 0);
+    const contrast = parseInt(document.getElementById('contrast')?.value || 0);
+    const exposure = parseFloat(document.getElementById('exposure')?.value || 0);
+    const whiteBalance = parseFloat(document.getElementById('white_balance')?.value || 0);
+    const frameRate = parseFloat(document.getElementById('framerate')?.value || 20);
+    const rotation_angle=rotationAngle
+
+    const payload = {
+        zoom,
+        brightness,
+        contrast,
+        exposure,
+        whiteBalance,
+        frameRate,
+        rotation_angle
     };
 
     try {
@@ -683,6 +731,8 @@ function formatTime(seconds) {
         alert("Failed to save settings.");
     }
 });
+
+
 
 
  document.getElementById('reset_button').addEventListener('click', async () => {
@@ -917,6 +967,29 @@ function formatTime(seconds) {
     modal.classList.add('show');
     setTimeout(resizeCanvasToMedia, 300);
   }
+
+  async function fetch_last_saved_rotation_angle() {
+  let rotation = 0;
+  try {
+    const res = await fetch('/fetch_settings', {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    const data = await res.json();
+
+    if (data.status === 'ok') {
+      rotation = data.settings?.rotation_angle || 0;
+      console.log("Rotation angle loaded:", rotation);
+    } else {
+      console.warn("Failed to fetch settings:", data);
+    }
+  } catch (err) {
+    console.error("Error fetching rotation angle:", err);
+  }
+
+  return rotation;
+ }
 
   function saveEditedImage() {
     const image = document.getElementById('modalImage');
