@@ -759,17 +759,28 @@ def register_camera(app):
          data = request.get_json(silent=True) or {}
          patient_id = data.get('patient_id')
          patient_name = data.get('patient_name')
-         appointment_id=data.get('appointment_id')
+         appointment_id=data.get('id')
 
          if not patient_id or not patient_name:
              return jsonify({"error": "patient_id and patient_name are required"}), 400
 
          images_saved = 0
          videos_saved = 0
+         check_query = '''
+                        SELECT *
+                        FROM patient_history
+                        WHERE patientId = ? AND date(appointmentDate) = ? LIMIT 1;
+                    '''
+         today = datetime.now().strftime('%Y-%m-%d')
+         existing_history = db.custom_query_v1(check_query, [
+             patient_id,
+             today
+         ])
+
 
          # Create one history row for this call (use None for id so DB autogenerates it)
          patient_history = PatientHistoryModel(
-             None,  # id
+             existing_history.patientId if existing_history else None,
              appointment_id,
              patient_id,
              datetime.now(),

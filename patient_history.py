@@ -17,8 +17,8 @@ def register_patient_history(app):
      else:
           agency_name = 'Mex Enterprise'
      dto_list = db.custom_query(Queries.GET_GRID_DATA, PatientVisitDTO.from_map)
-
-     return render_template("patient_history.html",dto_list=dto_list,agency_name=agency_name)
+     dto_dicts = [dto.__dict__ for dto in dto_list]
+     return render_template("patient_history.html",dto_list=dto_dicts,agency_name=agency_name)
 
 
 

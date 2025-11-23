@@ -1,4 +1,10 @@
+import os
+import shutil
+from ctypes import windll
 from datetime import datetime
+from pathlib import Path
+
+from _ctypes import byref
 from flask import redirect, request, url_for, render_template, jsonify
 from db_config.database_service import DatabaseService
 from models.patient_history_model import PatientHistoryModel
@@ -18,9 +24,14 @@ def register_pat_reg_routes(app):
 
         return render_template("patient_registeration.html", agency_name=agency_name)
 
+    from flask import jsonify, request
+    import os
+    import shutil
+
     @app.route('/register_patient', methods=['POST'])
     def register_patient():
-        status=None
+        status = None
+        persist_id = None
         data = request.form
         appointmentId = data.get('id')
         patientName = data.get('patient_name')
@@ -29,23 +40,74 @@ def register_pat_reg_routes(app):
         phone = data.get('phone')
         address = data.get('address')
 
-        exists = db.query_by_column("patients", "phone", phone, PatientsModel.from_map)
-        if (exists):
-            patient = PatientsModel(exists.patient_id, appointmentId, patientName, gender, dateOfBirth, phone, address)
-            db.updatePatient(patient)
-            status='updated'
-            save_patient_history(patient)
+        try:
+            # Check existing patient
+            exists = db.query_by_column("patients", "phone", phone, PatientsModel.from_map)
+            exists_by_id = db.query_by_column("patients", "appointmentId", appointmentId, PatientsModel.from_map)
 
-        else:
-            patient = PatientsModel(None, appointmentId, patientName, gender, dateOfBirth, phone, address)
-            persist_id = db.insert(patient)
-            patients = db.query_by_column("patients", "patientId", persist_id, PatientsModel.from_map)
-            if (patients):
-                save_patient_history(patients)
-                print(patients)
-                status='saved'
-        return jsonify({'status': status, 'patient_id':persist_id})
+            if exists:
+                patient = PatientsModel(exists.patient_id, appointmentId, patientName, gender, dateOfBirth, phone,
+                                        address)
 
+                # Rename folder safely
+                old_path = os.path.join(_get_documents_path(), 'DrCamApp', exists.patient_name, 'images')
+                new_path = os.path.join(_get_documents_path(), 'DrCamApp', patientName, 'images')
+
+                if os.path.exists(old_path):
+                    # If new_path exists, remove to avoid conflict
+                    if os.path.exists(new_path):
+                        shutil.rmtree(new_path)
+                    os.rename(old_path, new_path)
+                    print(f"Renamed {old_path} -> {new_path}")
+                else:
+                    os.makedirs(new_path, exist_ok=True)
+                    print(f"No old folder. Created new folder: {new_path}")
+
+                db.updatePatient(patient)
+                persist_id = exists.patient_id
+                status = 'updated'
+                save_patient_history(patient)
+
+            elif exists_by_id:
+                patient = PatientsModel(exists_by_id.patient_id, appointmentId, patientName, gender, dateOfBirth, phone,
+                                        address)
+
+                old_path = os.path.join(_get_documents_path(), 'DrCamApp', exists_by_id.patient_name)
+                new_path = os.path.join(_get_documents_path(), 'DrCamApp', patientName)
+
+                if os.path.exists(old_path):
+                    if os.path.exists(new_path):
+                        shutil.rmtree(new_path)
+                    os.rename(old_path, new_path)
+                    print(f"Renamed {old_path} -> {new_path}")
+                else:
+                    os.makedirs(new_path, exist_ok=True)
+                    print(f"No old folder. Created new folder: {new_path}")
+
+                db.updatePatient(patient)
+                persist_id = exists_by_id.patient_id
+                status = 'updated'
+                save_patient_history(patient)
+
+            else:
+                patient = PatientsModel(None, appointmentId, patientName, gender, dateOfBirth, phone, address)
+                persist_id = db.insert(patient)
+                patients = db.query_by_column("patients", "patientId", persist_id, PatientsModel.from_map)
+                if patients:
+                    save_patient_history(patients)
+                    print(patients)
+                status = 'saved'
+
+            # Commit transaction if using SQLAlchemy or similar
+            db.commit() if hasattr(db, 'commit') else None
+
+            return jsonify({'status': status, 'patient_id': persist_id})
+
+        except Exception as e:
+            # Rollback transaction in case of error
+            db.rollback() if hasattr(db, 'rollback') else None
+            print(f"Error registering patient: {e}")
+            return jsonify({'status': 'error', 'message': str(e), 'patient_id': persist_id}), 500
 
     def save_patient_history(patient):
         try:
@@ -55,7 +117,7 @@ def register_pat_reg_routes(app):
             check_query = '''
                 SELECT COUNT(1)
                 FROM patient_history
-                WHERE patientId = ? AND appointmentDate = ?
+                WHERE patientId = ? AND date(appointmentDate) = ?
             '''
 
             existing_count = db.custom_query_v1(check_query, [
@@ -100,3 +162,27 @@ def register_pat_reg_routes(app):
             })
 
         return jsonify({'status': 'error', 'message': 'Patient not found'})
+
+    def _get_documents_path():
+     try:
+        #from ctypes import windll, POINTER, byref
+        from uuid import UUID
+        import ctypes.wintypes
+
+        SHGetKnownFolderPath = windll.shell32.SHGetKnownFolderPath
+        SHGetKnownFolderPath.argtypes = [
+            ctypes.POINTER(ctypes.c_byte), ctypes.wintypes.DWORD,
+            ctypes.wintypes.HANDLE, ctypes.POINTER(ctypes.c_wchar_p)
+        ]
+
+        FOLDERID_Documents = UUID('{FDD39AD0-238F-46AF-ADB4-6C85480369C7}')
+        path_ptr = ctypes.c_wchar_p()
+
+        SHGetKnownFolderPath(
+            (ctypes.c_byte * 16).from_buffer_copy(FOLDERID_Documents.bytes_le),
+            0, 0, byref(path_ptr)
+        )
+        return Path(path_ptr.value)
+     except Exception as e:
+        print("Error getting Documents path, falling back to home/Documents:", e)
+        return Path.home() / "Documents"

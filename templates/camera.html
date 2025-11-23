@@ -171,6 +171,40 @@
         word-break: break-all;
     }
 
+------------
+ .fullscreen-mode {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    width: 100vw !important;
+    height: 100vh !important;
+    background: black;
+    z-index: 9999;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+
+  /* Keep action buttons visible */
+  .fullscreen-mode #actionButtons {
+    position: absolute;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10000;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .cameraSec{
+    background-color: rgba(243,244,246,var(--tw-bg-opacity));
+  }
+
     /* Modal */
     .modal {
         display: none;
@@ -475,7 +509,7 @@
 
 
 <!-- CENTER PANEL: Live Camera -->
-<section class="flex-grow bg-black relative flex items-center justify-center rounded-lg mx-4 aspect-video min-h-[600px] overflow-hidden">
+<section class="cameraSec flex-grow relative flex items-center justify-center rounded-lg mx-4 aspect-video min-h-[600px] overflow-hidden">
 
   <!-- Camera Feed -->
   <img id="cameraFeed"
@@ -489,6 +523,8 @@
     <span id="recordingDot" class="w-3 h-3 bg-red-600 rounded-full animate-ping"></span>
     <span id="recordingTimer" class="text-sm font-mono">00:00</span>
   </div>
+
+
 
   <!-- Action Buttons -->
   <div id="actionButtons"
@@ -510,6 +546,13 @@
     <button id="stopRecordingBtn"
             class="w-28 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition"
             onclick="stopRecording()">Stop</button>
+    <button id="fullscreenBtn"
+        class="w-28 py-2 bg-gray-700 text-white font-medium rounded-lg hover:bg-gray-800 transition flex items-center justify-center gap-2">
+  ⛶ Fullscreen
+</button>
+
+
+
   </div>
 
 </section>
@@ -599,6 +642,52 @@ function formatTime(seconds) {
     const secs = String(seconds % 60).padStart(2, '0');
     return `${mins}:${secs}`;
 }
+
+
+// ===== Fullscreen Toggle (Single Button) =====
+const cameraSection = document.querySelector("section.flex-grow");
+const fullscreenBtn = document.getElementById("fullscreenBtn");
+
+fullscreenBtn.addEventListener("click", async () => {
+  const isFullscreen = cameraSection.classList.contains("fullscreen-mode");
+
+  if (!isFullscreen) {
+    // Enter fullscreen mode
+    cameraSection.classList.add("fullscreen-mode");
+    fullscreenBtn.textContent = "✖ Exit Fullscreen";
+
+    // Optionally use real browser fullscreen
+    if (cameraSection.requestFullscreen) {
+      await cameraSection.requestFullscreen().catch(() => {});
+    }
+
+  } else {
+    // Exit fullscreen mode
+    cameraSection.classList.remove("fullscreen-mode");
+    fullscreenBtn.textContent = "⛶ Fullscreen";
+
+    if (document.fullscreenElement) {
+      await document.exitFullscreen().catch(() => {});
+    }
+  }
+});
+
+// Handle ESC key to exit fullscreen mode
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && cameraSection.classList.contains("fullscreen-mode")) {
+    cameraSection.classList.remove("fullscreen-mode");
+    fullscreenBtn.textContent = "⛶ Fullscreen";
+
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    }
+  }
+});
+
+
+
+
+
 
 // ===== Camera Controls =====
 
