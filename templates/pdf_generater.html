@@ -75,6 +75,30 @@
     </style>
 </head>
 <body>
+<!-- PDF Preview Modal -->
+<div id="pdfModal" class="fixed inset-0 bg-black bg-opacity-50 hidden justify-center items-center">
+    <div class="bg-white rounded-lg p-4 w-3/4 h-[80%] flex flex-col">
+
+        <h2 class="text-xl font-bold mb-2">PDF Preview</h2>
+
+        <iframe id="pdfFrame" class="w-full h-3/4 border"></iframe>
+
+        <textarea id="doctorComment"
+                  placeholder="Write doctor comments here..."
+                  class="border w-full p-2 mt-2 rounded"></textarea>
+
+        <div class="flex justify-end mt-2">
+            <button onclick="downloadFinalPDF()"
+                    class="bg-red-800 text-white px-4 py-2 rounded">
+                Download Final PDF
+            </button>
+            <button onclick="closeModal()"
+                    class="ml-2 border px-4 py-2 rounded">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
 
 <!-- Navigation Bar -->
 <nav class="flex justify-between items-center px-6 py-4 bg-white shadow-md">
@@ -174,47 +198,76 @@
         alert('Image preview placeholder: ' + url);
     }
 
-    function getSelectedImages() {
-    const checkboxes = document.querySelectorAll('.select-checkbox:checked');
-    const selectedFiles = Array.from(checkboxes).map(cb => cb.dataset.filename);
-    const imageCountPerPage = parseInt(document.getElementById("image-count").value);
+<!--    function getSelectedImages() {-->
+<!--    const checkboxes = document.querySelectorAll('.select-checkbox:checked');-->
+<!--    const selectedFiles = Array.from(checkboxes).map(cb => cb.dataset.filename);-->
+<!--    const imageCountPerPage = parseInt(document.getElementById("image-count").value);-->
+
+<!--    if (selectedFiles.length === 0) {-->
+<!--        alert("Please select at least one image.");-->
+<!--        return;-->
+<!--    }-->
+
+<!--    fetch('/api/selected_images', {-->
+<!--        method: 'POST',-->
+<!--        headers: {-->
+<!--            'Content-Type': 'application/json'-->
+<!--        },-->
+<!--        body: JSON.stringify({-->
+<!--            images: selectedFiles,-->
+<!--            count_per_page: imageCountPerPage-->
+<!--        })-->
+<!--    })-->
+<!--    .then(response => {-->
+<!--        if (!response.ok) {-->
+<!--            throw new Error("Failed to download PDF");-->
+<!--        }-->
+<!--        return response.blob();-->
+<!--    })-->
+<!--    .then(blob => {-->
+<!--        const url = window.URL.createObjectURL(blob);-->
+<!--        const a = document.createElement('a');-->
+<!--        a.href = url;-->
+<!--        a.download = "Selected_Images.pdf";-->
+<!--        document.body.appendChild(a);-->
+<!--        a.click();-->
+<!--        a.remove();-->
+<!--        window.URL.revokeObjectURL(url);-->
+<!--    })-->
+<!--    .catch(error => {-->
+<!--        console.error("Error downloading PDF:", error);-->
+<!--        alert("Failed to download PDF");-->
+<!--    });-->
+<!--    }-->
+
+        function getSelectedImages() {
+    const selectedFiles = [...document.querySelectorAll('.select-checkbox:checked')]
+        .map(cb => cb.dataset.filename);
+
+    const imageCountPerPage = document.getElementById("image-count").value;
 
     if (selectedFiles.length === 0) {
-        alert("Please select at least one image.");
+        alert("Please select images.");
         return;
     }
 
     fetch('/api/selected_images', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
+        headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
             images: selectedFiles,
             count_per_page: imageCountPerPage
         })
     })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error("Failed to download PDF");
-        }
-        return response.blob();
-    })
+    .then(response => response.blob())
     .then(blob => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = "Selected_Images.pdf";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
-    })
-    .catch(error => {
-        console.error("Error downloading PDF:", error);
-        alert("Failed to download PDF");
+        const url = URL.createObjectURL(blob);
+
+        document.getElementById("pdfFrame").src = url;
+        document.getElementById("pdfModal").classList.remove("hidden");
+        document.getElementById("pdfModal").classList.add("flex");
     });
-    }
+}
 
 
 
@@ -227,6 +280,28 @@
         });
 
     });
+
+    function downloadFinalPDF() {
+    const comment = document.getElementById("doctorComment").value;
+
+    fetch("/api/finalize_pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ comment: comment })
+    })
+    .then(res => res.blob())
+    .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "Final_Report.pdf";
+        a.click();
+    });
+}
+
+function closeModal() {
+    document.getElementById("pdfModal").classList.add("hidden");
+}
 </script>
 
 
