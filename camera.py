@@ -168,7 +168,7 @@ def register_camera(app):
         # If H1600 cam is not found, check for "VMware Virtual USB Video Device"
         if target_device_name is None:
             for name in devices:
-                if "Integrated Webcam" in name:
+                if "HP HD Camera" in name:
                     target_device_name = name
                     break
 
@@ -492,7 +492,7 @@ def register_camera(app):
             if ret:
                 if isFlipped == 'true':
                     frame = cv2.flip(frame, 1)
-                if recording_rotation_angle != 0:
+                if recording_rotation_angle and recording_rotation_angle != 0:
                     (h, w) = frame.shape[:2]
                     center = (w // 2, h // 2)
                     M = cv2.getRotationMatrix2D(center, -recording_rotation_angle, 1.0)
@@ -780,13 +780,16 @@ def register_camera(app):
 
          # Create one history row for this call (use None for id so DB autogenerates it)
          patient_history = PatientHistoryModel(
-             existing_history.patientId if existing_history else None,
+             existing_history if existing_history else None,
              appointment_id,
              patient_id,
              datetime.now(),
              datetime.now()
          )
-         history_id = db.insert(patient_history)  # make sure this returns the PK
+         if existing_history:
+             history_id = db.update(patient_history)
+         else:
+          history_id = db.insert(patient_history)  # make sure this returns the PK
 
          # ------- IMAGES -------
          if images_list:
